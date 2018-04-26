@@ -1,5 +1,7 @@
 # Ignore All Data
-
+*.mat
 
 # Ignore All Plots
 
+# Ignore compiled and other artifacts
+*.DS_Store
