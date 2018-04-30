@@ -1,7 +1,17 @@
 # Ignore All Data
 *.mat
+data/survey.csv
+data/stage_2_processed.pickle
+data/manual_inspection.pickle
+data/stage_3_processed.pickle
 
 # Ignore All Plots
+*.png
+*.jpg
 
 # Ignore compiled and other artifacts
 *.DS_Store
+*.ipynb_checkpoints
+
+# Ignore Notebooks
+*.ipynb
