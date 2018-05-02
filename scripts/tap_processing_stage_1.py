@@ -1,5 +1,5 @@
 
-## In Stage 1 of proessing, we manually check time series and throw out bad data (sensor malfunction, forgetting)
+## In Stage 1 of proessing, we manually check time series and throw out bad data (sensor malfunction, forgetting the task)
 
 ###############################
 ### Imports
@@ -15,6 +15,10 @@ import pickle
 
 # Signal Processing
 import scipy.io as sio
+
+# Data Loading
+from scripts.libraries.helpers import load_tapping_data
+from scripts.libraries.helpers import load_pickle, dump_pickle
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -35,6 +39,12 @@ tapping_filenames = [tapping_filenames[i] for i in np.argsort([int(t.split("/")[
 
 # Survey Data Filename
 survey_data_filename = data_dir + "survey.csv"
+
+# Store Inspected File
+eye_checks = {}
+eye_check_store = data_dir + "manual_inspection.pickle"
+if os.path.exists(eye_check_store):
+    eye_checks = load_pickle(eye_check_store)
 
 ###############################
 ### Survey Data
@@ -59,45 +69,8 @@ print("Entire Study: %s" % describe_subject_pool(survey_data))
 print("Tapping Study: %s" % describe_subject_pool(survey_data.loc[survey_data.tapping_participant]))
 
 ###############################
-### Tapping Data
-###############################
-
-# Function to Load and Transform Tapping Data
-def load_tapping_data(filename):
-    """
-    Load .MAT file containing tapping data for a single subject.
-
-    Args:
-        filename (str): Path to the .mat file
-    Returns:
-        subject_data (dict): Dictionary containing subject data.
-                            {
-                            "preferred_force" (1d array): Signal from trial to computer preferred frequency,
-                            "preferred_period_online" (float): Preferred period computed online during experiment
-                            "frequency_sequence" (list of floats):Preferred period multiplier sequence
-                            "trial_metronome" (2d array): Metronome signal given as auditory stimulus
-                            "trial_force" (2d array): Signal from trials
-                            }
-    """
-    subject_data = sio.matlab.loadmat(file_name = filename)["data"]
-    subject_data = pd.DataFrame(subject_data[0]).transpose()
-    preferred_period_force = subject_data.loc["prefForceProfile"].values[0].T[0]
-    online_preferred_period_calculation = subject_data.loc['prefPeriod'][0][0][0]
-    frequency_sequence = subject_data.loc["sequence"][0][0]
-    trial_metronomes = np.vstack(subject_data.loc['metronome'][0][0])
-    trial_force = np.vstack([i.T[0] for i in subject_data.loc['metForceProfile'][0][0]])
-    return {"preferred_force":preferred_period_force, "preferred_period_online":online_preferred_period_calculation,
-           "frequency_sequence":frequency_sequence, "trial_metronome":trial_metronomes, "trial_force":trial_force}
-
-###############################
 ### Bad Data Filtering (manual)
 ###############################
-
-# Store Inspected File
-eye_checks = {}
-eye_check_store = "./data/manual_inspection.pickle"
-if os.path.exists(eye_check_store):
-    eye_checks = pickle.load(open(eye_check_store,"rb"))
 
 # Check Each Subject
 for file in tapping_filenames[::-1]:
@@ -133,8 +106,7 @@ for file in tapping_filenames[::-1]:
     plt.close("all")
 
     # Save Inspection
-    with open(eye_check_store, "wb") as the_file:
-        pickle.dump(eye_checks, the_file, protocol = 2)
+    dump_pickle(eye_checks, eye_check_store)
 
 ###############################
 ### Analyze Thrown Out Data

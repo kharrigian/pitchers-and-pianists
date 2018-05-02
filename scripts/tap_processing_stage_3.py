@@ -12,6 +12,10 @@ import datetime
 import copy
 import pickle
 
+# Data Loading
+from scripts.libraries.helpers import load_tapping_data
+from scripts.libraries.helpers import load_pickle, dump_pickle
+
 # Signal Processing
 import scipy.io as sio
 
@@ -40,66 +44,27 @@ tapping_filenames = glob.glob(tapping_data_dir + "*/*")
 tapping_filenames = [tapping_filenames[i] for i in np.argsort([int(t.split("/")[-1].replace(".mat","")) for t in tapping_filenames])]
 
 # Manual Inspections (to ignore)
-eye_check_store = "./data/manual_inspection.pickle"
+eye_check_store = data_dir + "manual_inspection.pickle"
+eye_checks = load_pickle(eye_check_store)
+files_to_ignore = set([file for file, reason in eye_checks.items() if reason != "pass"])
 
 # Processed Tap File (from stage 2)
 stage_2_processed_file = data_dir + "stage_2_processed.pickle"
+stage_2_processed_taps = load_pickle(stage_2_processed_file)
 
 # Filtered Tap File (for this stage)
 stage_3_processed_file = data_dir + "stage_3_processed.pickle"
-
-###############################
-### Function to Load Tapping Data
-###############################
-
-# Function to Load and Transform Tapping Data
-def load_tapping_data(filename):
-    """
-    Load .MAT file containing tapping data for a single subject.
-
-    Args:
-        filename (str): Path to the .mat file
-    Returns:
-        subject_data (dict): Dictionary containing subject data.
-                            {
-                            "preferred_force" (1d array): Signal from trial to computer preferred frequency,
-                            "preferred_period_online" (float): Preferred period computed online during experiment
-                            "frequency_sequence" (list of floats):Preferred period multiplier sequence
-                            "trial_metronome" (2d array): Metronome signal given as auditory stimulus
-                            "trial_force" (2d array): Signal from trials
-                            }
-    """
-    subject_data = sio.matlab.loadmat(file_name = filename)["data"]
-    subject_data = pd.DataFrame(subject_data[0]).transpose()
-    preferred_period_force = subject_data.loc["prefForceProfile"].values[0].T[0]
-    online_preferred_period_calculation = subject_data.loc['prefPeriod'][0][0][0]
-    frequency_sequence = subject_data.loc["sequence"][0][0]
-    trial_metronomes = np.vstack(subject_data.loc['metronome'][0][0])
-    trial_force = np.vstack([i.T[0] for i in subject_data.loc['metForceProfile'][0][0]])
-    return {"preferred_force":preferred_period_force, "preferred_period_online":online_preferred_period_calculation,
-           "frequency_sequence":frequency_sequence, "trial_metronome":trial_metronomes, "trial_force":trial_force}
+if os.path.exists(stage_3_processed_file):
+    stage_3_processed_taps = load_pickle(stage_3_processed_file)
+else:
+    stage_3_processed_taps = {}
 
 ###############################
 ### Tap Cleaning
 ###############################
 
-# Load processed taps
-with open(stage_2_processed_file,"rb") as the_processed_file:
-    stage_2_processed_taps = pickle.load(the_processed_file)
-
-# Load subjects to ignore (from stage 1)
-with open(eye_check_store,"rb") as the_eye_checks:
-    eye_checks = pickle.load(the_eye_checks)
-files_to_ignore = set([file for file, reason in eye_checks.items() if reason != "pass"])
-
-# Initialze or Load Store for Stage 3 Processed
-stage_3_processed_taps = {}
-if os.path.exists(stage_3_processed_file):
-    with open(stage_3_processed_file, "rb") as the_file:
-        stage_3_processed_taps = pickle.load(the_file)
-
 # Process each subject
-for sub, subject_file in enumerate(tapping_filenames[:1]):
+for sub, subject_file in enumerate(tapping_filenames):
 
     # Parse subject identifiers
     subject_id = int(subject_file.split("/")[-1].replace(".mat",""))
@@ -142,6 +107,7 @@ for sub, subject_file in enumerate(tapping_filenames[:1]):
 
         # Automatically remove initiations that occur at zero index
         tap_inits = tap_inits[np.nonzero(tap_inits>0)[0]]
+        tap_inits = tap_inits[np.nonzero(tap_inits <= len(signal)-10)[0]]
         starting_tap_init_length = len(tap_inits)
 
         # Interactive Removal Procedure
@@ -161,12 +127,12 @@ for sub, subject_file in enumerate(tapping_filenames[:1]):
                     plt.close(1)
 
             # Separate by condition and compute ITIs
-            met_inits = tap_inits[np.nonzero(tap_inits <= last_metronome_beat)[0]]
-            nomet_inits = tap_inits[np.nonzero(tap_inits > last_metronome_beat)[0]]
+            met_inits = tap_inits[np.nonzero(tap_inits <= last_metronome_beat + expected_iti)[0]]
+            nomet_inits = tap_inits[np.nonzero(tap_inits > last_metronome_beat + expected_iti)[0]]
             met_itis, nomet_itis = np.diff(met_inits), np.diff(nomet_inits)
 
             # Create Plot
-            fig, ax = plt.subplots(2,1, sharex = False, figsize = (14,8))
+            fig, ax = plt.subplots(2,1, sharex = False, figsize = (14,6))
             ax[0].plot(signal)
             ax[0].vlines(tap_inits, ax[0].get_ylim()[0], ax[0].get_ylim()[1],
                         color = "red", linewidth = .75, linestyle = "--")
@@ -219,7 +185,7 @@ for sub, subject_file in enumerate(tapping_filenames[:1]):
             filtered_original = True
 
             # Show Final Result
-            fig, ax = plt.subplots(figsize=(12,8))
+            fig, ax = plt.subplots(figsize=(12,6))
             ax.plot(signal)
             ax.vlines(tap_inits, ax.get_ylim()[0], ax.get_ylim()[1], color = "red", linewidth = .75, linestyle = "--")
             fig.tight_layout()
@@ -243,10 +209,8 @@ for sub, subject_file in enumerate(tapping_filenames[:1]):
     # Periodically save processed data
     if (sub + 1) % 10 == 0 :
         print("Saving data")
-        with open(stage_3_processed_file,"wb") as the_file:
-            pickle.dump(stage_3_processed_taps, the_file, protocol = 2)
+        dump_pickle(stage_3_processed_taps, stage_3_processed_file)
 
 # Complete Save
 print("Saving data")
-with open(stage_3_processed_file,"wb") as the_file:
-    pickle.dump(stage_3_processed_taps, the_file, protocol = 2)
+dump_pickle(stage_3_processed_taps, stage_3_processed_file)

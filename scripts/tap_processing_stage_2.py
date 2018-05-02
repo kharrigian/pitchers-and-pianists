@@ -1,5 +1,8 @@
 ## In Stage 2 of proessing, we estimate tap initiations
 
+# Flag to create plots of output
+create_plots = False
+
 ###############################
 ### Imports
 ###############################
@@ -16,6 +19,10 @@ import pickle
 import scipy.io as sio
 import statsmodels.api as sm
 from sklearn import preprocessing
+
+# Data Loading
+from scripts.libraries.helpers import load_tapping_data, rle
+from scripts.libraries.helpers import load_pickle, dump_pickle
 
 # Model
 from hmmlearn import hmm
@@ -54,7 +61,7 @@ tapping_filenames = [tapping_filenames[i] for i in np.argsort([int(t.split("/")[
 survey_data_filename = data_dir + "survey.csv"
 
 # Manual Inspections (to ignore)
-eye_check_store = "./data/manual_inspection.pickle"
+eye_check_store = data_dir + "manual_inspection.pickle"
 
 ###############################
 ### Survey Data
@@ -79,37 +86,6 @@ print("Entire Study: %s" % describe_subject_pool(survey_data))
 print("Tapping Study: %s" % describe_subject_pool(survey_data.loc[survey_data.tapping_participant]))
 
 ###############################
-### Tapping Data
-###############################
-
-# Function to Load and Transform Tapping Data
-def load_tapping_data(filename):
-    """
-    Load .MAT file containing tapping data for a single subject.
-
-    Args:
-        filename (str): Path to the .mat file
-    Returns:
-        subject_data (dict): Dictionary containing subject data.
-                            {
-                            "preferred_force" (1d array): Signal from trial to computer preferred frequency,
-                            "preferred_period_online" (float): Preferred period computed online during experiment
-                            "frequency_sequence" (list of floats):Preferred period multiplier sequence
-                            "trial_metronome" (2d array): Metronome signal given as auditory stimulus
-                            "trial_force" (2d array): Signal from trials
-                            }
-    """
-    subject_data = sio.matlab.loadmat(file_name = filename)["data"]
-    subject_data = pd.DataFrame(subject_data[0]).transpose()
-    preferred_period_force = subject_data.loc["prefForceProfile"].values[0].T[0]
-    online_preferred_period_calculation = subject_data.loc['prefPeriod'][0][0][0]
-    frequency_sequence = subject_data.loc["sequence"][0][0]
-    trial_metronomes = np.vstack(subject_data.loc['metronome'][0][0])
-    trial_force = np.vstack([i.T[0] for i in subject_data.loc['metForceProfile'][0][0]])
-    return {"preferred_force":preferred_period_force, "preferred_period_online":online_preferred_period_calculation,
-           "frequency_sequence":frequency_sequence, "trial_metronome":trial_metronomes, "trial_force":trial_force}
-
-###############################
 ### Processing Functions
 ###############################
 
@@ -122,28 +98,8 @@ def max_window_normalization(signal, window_size):
         normalized_signal.append(preprocessing.MinMaxScaler((0,1)).fit_transform(window_sig.reshape(-1,1)).T[0])
     return np.array(flatten(normalized_signal))
 
-# Run Length
-def rle(inarray):
-    """ run length encoding. Partial credit to R rle function.
-        Multi datatype arrays catered for including non Numpy
-        returns: tuple (runlengths, startpositions, values) """
-    ia = np.asarray(inarray)                  # force numpy
-    n = len(ia)
-    if n == 0:
-        return (None, None, None)
-    else:
-        y = np.array(ia[1:] != ia[:-1])     # pairwise unequal (string safe)
-        i = np.append(np.where(y), n - 1)   # must include last element posi
-        z = np.diff(np.append(-1, i))       # run lengths
-        p = np.cumsum(np.append(0, z))[:-1] # positions
-        return(z, p, ia[i])
-
 # Function to use estimated initiation and look for maximum accelaration as better estimate
-def find_tap_initiation(force_signal, estimated_location, window_start=None, window_end=None):
-    if window_start is None:
-        window_start = estimated_location - 100
-    if window_end is None:
-        window_end = estimated_location + 100
+def estimate_tap_initiation(force_signal, estimated_location, window_start, window_end):
     force_window = force_signal[window_start:window_end]
     second_force_diff = (pd.Series(force_window).shift(-2) - pd.Series(force_window).shift(2))
     second_force_diff = second_force_diff.fillna(method = "ffill").fillna(method = "bfill")
@@ -168,7 +124,7 @@ files_to_ignore = set([file for file, reason in eye_checks.items() if reason != 
 stage_2_processed_tap_file = "./data/stage_2_processed.pickle"
 stage_2_processed = {}
 if os.path.exists(stage_2_processed_tap_file):
-    stage_2_processed = pickle.load(open(stage_2_processed_tap_file, "rb"))
+    stage_2_processed = load_pickle(stage_2_processed_tap_file)
 
 # Plot Directory
 plot_dir = "./plots/stage_2/"
@@ -264,7 +220,7 @@ for sub, subject_file in enumerate(tapping_filenames):
         win_start = statepos[np.nonzero(states)[0]]
         win_stop =  statepos[np.nonzero(states)[0]] + statelens[np.nonzero(states)[0]]
         impact_windows = list(zip(win_start, win_stop))
-        state_preds_detected = np.array([find_tap_initiation(signal, int(statepos[t]),
+        state_preds_detected = np.array([estimate_tap_initiation(signal, int(statepos[t]),
                                     window_start=impact_windows[t][0]-20,window_end=impact_windows[t][1]+20)
                                      for t in range(len(impact_windows))])
         if state_preds_detected[-1] < state_preds_detected[-2]:
@@ -275,31 +231,33 @@ for sub, subject_file in enumerate(tapping_filenames):
         met_ends = np.nonzero(state_preds_detected > metronome_beats.max())[0].min()
         met_itis, nomet_itis = np.diff(state_preds_detected[:met_ends+1]), np.diff(state_preds_detected[met_ends+1:])
 
-        # Plot Results
-        fig, axes = plt.subplots(2,1, figsize = (14,6), sharex = False)
-        axes[0].plot(signal, alpha = 0.7, linewidth = 1)
-        axes[0].vlines(state_preds_detected, axes[0].get_ylim()[0], axes[0].get_ylim()[1], color = "red", linewidth = .75, linestyle = "--")
-        t1 = axes[1].plot(np.arange(len(met_itis)), met_itis)
-        t2 = axes[1].scatter(np.arange(len(met_itis)), met_itis, color = "red", s = 20, marker = "o")
-        axes[1].plot(np.arange(met_ends, met_ends+len(nomet_itis)), nomet_itis, color = t1[0].get_color())
-        axes[1].scatter(np.arange(met_ends, met_ends+len(nomet_itis)), nomet_itis, color = "red", s = 20, marker = "o")
-        axes[1].axvline(met_ends - .5, color = "black", linestyle = "--")
-        if frequency != 1:
-            axes[1].axhline(metronome_beats[0], color = "black", label = "Trial Frequency",
-                                alpha = 0.5, linestyle = "--")
-            axes[1].axhline(int(preferred_period * 2000), color = "green", label = "Preferred",
-                                alpha = 0.5, linestyle = "--")
-        else:
-            axes[1].axhline(metronome_beats[0], color = "black", label = "Trial Frequency/Preferred",
-                                alpha = 0.5, linestyle = "--")
-        axes[1].legend(loc = "lower right", frameon = True, facecolor = "white")
-        axes[0].set_xlim(-.5, len(signal)+.5)
-        axes[1].set_xlim(-.5, len(state_preds_detected)-1)
-        fig.tight_layout()
-        fig.suptitle("Subject %s: Trial %s" % (subject_id, t+1), y = .98)
-        fig.subplots_adjust(top = .94)
-        fig.savefig(plot_dir + "%s_%s.png" % (subject_id, t+1))
-        plt.close("all")
+        # Plot Results if desired
+        if create_plots:
+
+            fig, axes = plt.subplots(2,1, figsize = (14,6), sharex = False)
+            axes[0].plot(signal, alpha = 0.7, linewidth = 1)
+            axes[0].vlines(state_preds_detected, axes[0].get_ylim()[0], axes[0].get_ylim()[1], color = "red", linewidth = .75, linestyle = "--")
+            t1 = axes[1].plot(np.arange(len(met_itis)), met_itis)
+            t2 = axes[1].scatter(np.arange(len(met_itis)), met_itis, color = "red", s = 20, marker = "o")
+            axes[1].plot(np.arange(met_ends, met_ends+len(nomet_itis)), nomet_itis, color = t1[0].get_color())
+            axes[1].scatter(np.arange(met_ends, met_ends+len(nomet_itis)), nomet_itis, color = "red", s = 20, marker = "o")
+            axes[1].axvline(met_ends - .5, color = "black", linestyle = "--")
+            if frequency != 1:
+                axes[1].axhline(metronome_beats[0], color = "black", label = "Trial Frequency",
+                                    alpha = 0.5, linestyle = "--")
+                axes[1].axhline(int(preferred_period * 2000), color = "green", label = "Preferred",
+                                    alpha = 0.5, linestyle = "--")
+            else:
+                axes[1].axhline(metronome_beats[0], color = "black", label = "Trial Frequency/Preferred",
+                                    alpha = 0.5, linestyle = "--")
+            axes[1].legend(loc = "lower right", frameon = True, facecolor = "white")
+            axes[0].set_xlim(-.5, len(signal)+.5)
+            axes[1].set_xlim(-.5, len(state_preds_detected)-1)
+            fig.tight_layout()
+            fig.suptitle("Subject %s: Trial %s" % (subject_id, t+1), y = .98)
+            fig.subplots_adjust(top = .94)
+            fig.savefig(plot_dir + "%s_%s.png" % (subject_id, t+1))
+            plt.close("all")
 
         # Save Tap Initiations
         stage_2_processed[subject_id][t+1] = state_preds_detected
@@ -307,35 +265,9 @@ for sub, subject_file in enumerate(tapping_filenames):
     # Periodically save processed data
     if (sub + 1) % 10 == 0 :
         print("Saving data")
-        with open(stage_2_processed_tap_file,"wb") as the_file:
-            pickle.dump(stage_2_processed, the_file, protocol = 2)
+        dump_pickle(stage_2_processed, stage_2_processed_tap_file)
 
 # Complete Save
 print("Saving data")
 with open(stage_2_processed_tap_file,"wb") as the_file:
-    pickle.dump(stage_2_processed, the_file, protocol = 2)
-
-
-
-###########################################################################################
-
-# # Moving Max Normalization (due to baseline fluctuations)
-# taps_per_window = 2
-# normalized_signal = max_window_normalization(signal_denoised, expected_iti * taps_per_window)
-
-# # Stabilize Predictions
-# statelens, statepos, states = rle(state_preds)
-# spans = pd.DataFrame(data = [statelens,statepos,states], index=["len","pos","state"]).T
-# spans = spans.loc[spans.state == 1]
-# spans = spans.loc[abs(spans.len - spans.len.median()) < 5 * spans.len.std()]
-# state_changes = spans.pos.values
-
-# # Filter by minimum intialization delay
-# min_delay = .5 * expected_iti
-# state_changes_filtered = [state_changes[0]]
-# last_state_change = state_changes[0]
-# for i in state_changes[1:]:
-#     if i - last_state_change > min_delay:
-#         state_changes_filtered.append(i)
-#         last_state_change = i
-# state_changes = np.array(state_changes_filtered)
+    dump_pickle(stage_2_processed, stage_2_processed_tap_file)

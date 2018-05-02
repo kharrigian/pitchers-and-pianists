@@ -15,3 +15,7 @@ data/stage_3_processed.pickle
 
 # Ignore Notebooks
 *.ipynb
+
+# Ignore compiled files
+*.pyc
+*_pycache_*
