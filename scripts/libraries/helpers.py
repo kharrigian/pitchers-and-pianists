@@ -17,6 +17,9 @@ warnings.simplefilter("ignore")
 ### Functions
 ########################
 
+# Flatten a list of lists
+flatten = lambda l: [item for sublist in l for item in sublist]
+
 # Function to Load and Transform Tapping Data
 def load_tapping_data(filename):
     """

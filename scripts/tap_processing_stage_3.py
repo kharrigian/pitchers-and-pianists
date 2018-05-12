@@ -43,21 +43,15 @@ tapping_data_dir = data_dir + "tapping/"
 tapping_filenames = glob.glob(tapping_data_dir + "*/*")
 tapping_filenames = [tapping_filenames[i] for i in np.argsort([int(t.split("/")[-1].replace(".mat","")) for t in tapping_filenames])]
 
-# Manual Inspections (to ignore)
-eye_check_store = data_dir + "manual_inspection.pickle"
-eye_checks = load_pickle(eye_check_store)
-files_to_ignore = set([file for file, reason in eye_checks.items() if reason != "pass"])
-
 # Processed Tap File (from stage 2)
 stage_2_processed_file = data_dir + "stage_2_processed.pickle"
 stage_2_processed_taps = load_pickle(stage_2_processed_file)
 
 # Filtered Tap File (for this stage)
 stage_3_processed_file = data_dir + "stage_3_processed.pickle"
+stage_3_processed_taps = {}
 if os.path.exists(stage_3_processed_file):
     stage_3_processed_taps = load_pickle(stage_3_processed_file)
-else:
-    stage_3_processed_taps = {}
 
 ###############################
 ### Tap Cleaning
@@ -73,7 +67,7 @@ for sub, subject_file in enumerate(tapping_filenames):
     print("Processing Subject %s" % subject_id)
 
     # Check to see if subject should be ignored
-    if subject_file in files_to_ignore:
+    if subject_id not in stage_2_processed_taps:
         continue
 
     # Check to see if subject has already been filtered
@@ -94,6 +88,9 @@ for sub, subject_file in enumerate(tapping_filenames):
     preferred_period_force_signal = subject_data["preferred_force"]
 
     # Order the taps
+    if subject_taps is None:
+        stage_3_processed_taps[subject_id] = None
+        continue
     subject_taps = [subject_taps[i] for i in range(1,7)]
 
     # Cycle through each trial
@@ -105,9 +102,7 @@ for sub, subject_file in enumerate(tapping_filenames):
         last_metronome_beat = metronome_beats.max()
         expected_iti = np.diff(metronome_beats)[0]
 
-        # Automatically remove initiations that occur at zero index
-        tap_inits = tap_inits[np.nonzero(tap_inits>0)[0]]
-        tap_inits = tap_inits[np.nonzero(tap_inits <= len(signal)-10)[0]]
+        # Note the starting number of taps
         starting_tap_init_length = len(tap_inits)
 
         # Interactive Removal Procedure
@@ -134,7 +129,7 @@ for sub, subject_file in enumerate(tapping_filenames):
             # Create Plot
             fig, ax = plt.subplots(2,1, sharex = False, figsize = (14,6))
             ax[0].plot(signal)
-            ax[0].vlines(tap_inits, ax[0].get_ylim()[0], ax[0].get_ylim()[1],
+            ax[0].vlines(tap_inits, ax[0].get_ylim()[0]-0.05, ax[0].get_ylim()[1],
                         color = "red", linewidth = .75, linestyle = "--")
             t1 = ax[1].plot(np.arange(len(met_itis)), met_itis)
             t2 = ax[1].scatter(np.arange(len(met_itis)), met_itis, color = "red", s = 20, marker = "o")
@@ -202,15 +197,48 @@ for sub, subject_file in enumerate(tapping_filenames):
         if len(final_check) > 0:
             discard_reason = final_check
             tap_inits = None
-        stage_3_processed_taps[subject_id][t+1] = {"tap_initiations":tap_inits,
-                                                     "discard_reason":discard_reason,
-                                                     "filtered":filtered_original}
+        stage_3_processed_taps[subject_id][t+1] = {"tap_initiations":tap_inits, "discard_reason":discard_reason, "filtered":filtered_original}
 
     # Periodically save processed data
-    if (sub + 1) % 10 == 0 :
+    if (sub + 1) % 5 == 0 :
         print("Saving data")
         dump_pickle(stage_3_processed_taps, stage_3_processed_file)
 
 # Complete Save
 print("Saving data")
 dump_pickle(stage_3_processed_taps, stage_3_processed_file)
+
+###############################
+### Filter Summary
+###############################
+
+subject_filtering_statistics = []
+for subject, taps in stage_3_processed_taps.items():
+    if taps is None:
+        for i in range(1,7):
+            subject_filtering_statistics.append([subject, i, "discarded_in_stage_1", None])
+        continue
+    for trial, trial_results in taps.items():
+        subject_filtering_statistics.append([subject, trial, trial_results["discard_reason"], trial_results["filtered"]])
+subject_filtering_statistics = pd.DataFrame(subject_filtering_statistics, columns = ["subject", "trial", "discarded", "filtered"])
+
+
+# Notes
+"""
+
+# Filtering
+92.1384% (1758) trials did not require filtering to remove false positives. 7.8616% (150) received some degree of false positive filtering
+* Note: This is an improvement from the original HMM identification technique, in which only 75% of trials were properly processed
+
+# Discarding
+108 trials had been removed during stage 1 of the processing procedure (sensor malfunctions et al.)
+5 trials were discarded because the subject tapped too lightly and the model could not properly detect initiations
+4 trials were removed because there was too much noise in the baseline (likely sensor error)
+1 trial was removed due to the subject having too much force variation across the trial
+
+# Remaining Data
+We are left with the following breakdown of subjects (318 total):
+* 312 subjects have 6 usable trials
+* 4 subjects have 5 usable trials
+* 2 subjects have 3 usable trials
+"""
