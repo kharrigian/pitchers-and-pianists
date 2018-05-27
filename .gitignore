@@ -6,7 +6,7 @@ data/stage_2_processed.pickle
 data/stage_3_processed.pickle
 data/stage_4_processed.pickle
 data/processed_results.csv
-
+data/transformed_subset.csv
 
 # Ignore All Plots
 *.png
@@ -15,6 +15,7 @@ data/processed_results.csv
 # Ignore compiled and other artifacts
 *.DS_Store
 *.ipynb_checkpoints
+.Rhistory
 
 # Ignore Notebooks
 *.ipynb
