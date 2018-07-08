@@ -23,3 +23,6 @@ data/transformed_subset.csv
 # Ignore compiled files
 *.pyc
 *_pycache_*
+
+# Ignore documentation
+documentation/

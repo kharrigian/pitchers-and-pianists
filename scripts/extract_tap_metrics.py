@@ -9,6 +9,7 @@ import os, glob, sys
 import datetime
 import copy
 import pickle
+import statsmodels.api as sm
 
 # Data Loading
 from scripts.libraries.helpers import load_pickle, dump_pickle, load_tapping_data
@@ -44,6 +45,9 @@ tapping_filenames = [tapping_filenames[i] for i in np.argsort([int(t.split("/")[
 ### Processing
 ###############################
 
+# Sample Rate
+sample_rate = 2000 # samples / second
+
 # Processing Store
 processed_results = []
 
@@ -65,7 +69,7 @@ for sub, subject_file in enumerate(tapping_filenames):
         continue
 
     # Split out data components
-    preferred_period = np.ceil(subject_data["preferred_period_online"] * 2000)
+    preferred_period = float(subject_data["preferred_period_online"])
     frequency_sequence = subject_data["frequency_sequence"]
     metronome_signal = subject_data["trial_metronome"]
 
@@ -89,42 +93,56 @@ for sub, subject_file in enumerate(tapping_filenames):
         # Identify Metronome Beats and Expected ITI
         metronome = metronome/metronome.max()
         metronome_beats = np.nonzero(np.diff(abs(metronome)) == 1)[0] + 1
-        expected_iti = np.diff(metronome_beats)[0]
+        expected_iti = np.diff(metronome_beats)[0] / sample_rate
 
 		# Ignore Trial if Not 40 seconds long
-        if len(metronome) != 40 * 2000:
+        if len(metronome) != 40 * sample_rate:
             print("Subject %s, trial %s is not the full experiemental length" % (subject_id, trial))
             continue
 
         # Separate Synchronization/Continuation
-        met_itis = trial_tap_data['metronome']
-        nomet_itis = trial_tap_data['no_metronome']
+        met_itis = trial_tap_data['metronome'].astype(float) / sample_rate
+        nomet_itis = trial_tap_data['no_metronome'].astype(float) / sample_rate
 
         # Important Sections
-        met_mask_last5 = met_itis[:,1] >= 20000
-        met_mask_last10 = met_itis[:,1] >= 10000
-        nomet_mask_last20 = nomet_itis[:,1] >= 40000
-        nomet_mask_nontransient_first5 = np.logical_and(nomet_itis[:,1] >= 40000,  nomet_itis[:,1] < 50000)
-        nomet_mask_last5 = nomet_itis[:,1] >= metronome.shape[0] - (5*2000)
+        met_mask_last5 = np.nonzero(met_itis[:,1] >= 5.)[0]
+        nomet_mask_nontransient = np.nonzero(nomet_itis[:, 1] >= 20.)[0]
+
+        # If either masks don't have minimum number of taps, break
+        if len(met_mask_last5) < 5 or len(nomet_mask_nontransient) < 10:
+            continue
+
+        # Isolate ITIs within each Sections
+        met_itis_last5 = met_itis[met_mask_last5][-5:, 2]
+        nomet_itis_first5 = nomet_itis[nomet_mask_nontransient][:5, 2]
+        nomet_itis_last5 = nomet_itis[nomet_mask_nontransient][-5:, 2]
+
+        # Absolute Synchronization Error (median - trial_period)
+        met_last_5_sync_error = np.median(met_itis_last5) - expected_iti
+        nomet_first_5_sync_error = np.median(nomet_itis_first5) - expected_iti
+        nomet_last_5_sync_error = np.median(nomet_itis_last5) - expected_iti
 
         # Relative Synchronization Error (median - trial period) / trial_period
-        met_last_5_sync_error = (np.median(met_itis[met_mask_last5][:,2]) - expected_iti) / expected_iti * 100
-        met_last_10_sync_error = (np.median(met_itis[met_mask_last10][:,2]) - expected_iti) / expected_iti * 100
-        nomet_last_20_sync_error = (np.median(nomet_itis[nomet_mask_last20][:,2]) - expected_iti) / expected_iti * 100
-        nomet_first_5_sync_error = (np.median(nomet_itis[nomet_mask_nontransient_first5][:,2]) - expected_iti) / expected_iti * 100
-        nomet_last_5_sync_error = (np.median(nomet_itis[nomet_mask_last5][:,2]) - expected_iti) / expected_iti * 100
+        met_last_5_sync_error_rel = (max(met_last_5_sync_error, 1./sample_rate) if met_last_5_sync_error >= 0 else met_last_5_sync_error) / expected_iti * 100
+        nomet_first_5_sync_error_rel = (max(nomet_first_5_sync_error, 1./sample_rate) if nomet_first_5_sync_error >= 0 else nomet_first_5_sync_error) / expected_iti * 100
+        nomet_last_5_sync_error_rel = (max(nomet_last_5_sync_error, 1./sample_rate) if nomet_last_5_sync_error >= 0 else nomet_last_5_sync_error) / expected_iti * 100
 
-        # Coefficient of Variation (std/median)
-        met_last_5_cv = np.std(met_itis[met_mask_last5][:,2]) / np.median(met_itis[met_mask_last5][:,2])
-        met_last_10_cv = np.std(met_itis[met_mask_last10][:,2]) / np.median(met_itis[met_mask_last10][:,2])
-        nomet_last_20_cv = np.std(nomet_itis[nomet_mask_last20][:,2]) / np.median(nomet_itis[nomet_mask_last20][:,2])
-        nomet_first_5_cv = np.std(nomet_itis[nomet_mask_nontransient_first5][:,2]) / np.median(nomet_itis[nomet_mask_nontransient_first5][:,2])
-        nomet_last_5_cv = np.std(nomet_itis[nomet_mask_last5][:,2]) / np.median(nomet_itis[nomet_mask_last5][:,2])
+        # Coefficient of Variation (std/mean)
+        met_last_5_cv = np.std(met_itis_last5) / np.mean(met_itis_last5)
+        nomet_first_5_cv = np.std(nomet_itis_first5) / np.mean(nomet_itis_first5)
+        nomet_last_5_cv = np.std(nomet_itis_last5) / np.mean(nomet_itis_last5)
 
         # Drift (pct change of first 5 median to last 5 median)
-        nomet_first_5_median = np.median(nomet_itis[nomet_mask_nontransient_first5][:,2])
-        nomet_last_5_median = np.median(nomet_itis[nomet_mask_last5][:,2])
-        nomet_drift = (nomet_last_5_median - nomet_first_5_median) / nomet_first_5_median * 100
+        nomet_first_5_median = np.median(nomet_itis_first5)
+        nomet_last_5_median = np.median(nomet_itis_last5)
+        nomet_drift = nomet_last_5_median - nomet_first_5_median
+        nomet_drift_rel = (max(nomet_drift, 1./sample_rate) if nomet_drift >= 0 else nomet_drift) / nomet_first_5_median * 100
+
+		# Drift (Regression Coefficient)
+        y = nomet_itis[nomet_mask_nontransient][:,2]
+        x = np.arange(len(y)); x = x/x.max(); x = sm.add_constant(x)
+        model = sm.OLS(y, x).fit()
+        nomet_drift_regression = model.params[1]
 
         # Store Metrics
         trial_metrics = {
@@ -132,24 +150,26 @@ for sub, subject_file in enumerate(tapping_filenames):
                         "subject":subject_id,
                         "collection_date":collection_date,
                         "trial":trial,
-                        "preferred_period":preferred_period,
+                        "preferred_period":preferred_period * 1000,
                         "trial_speed":frequency,
                         "speed_occurrence":occurence,
                         ### Trial Results ###
                         # Synchronization Error
-                        "met_sync_error_last5":met_last_5_sync_error,
-                        "met_sync_error_last10":met_last_10_sync_error,
-                        "nomet_sync_error_last20":nomet_last_20_sync_error,
-                        "nomet_sync_error_first5":nomet_first_5_sync_error,
-                        "nomet_sync_error_last5":nomet_last_5_sync_error,
+                        "met_sync_error_last5":met_last_5_sync_error * 1000,
+                        "nomet_sync_error_first5":nomet_first_5_sync_error * 1000,
+                        "nomet_sync_error_last5":nomet_last_5_sync_error * 1000,
+                        # Relative Synchronization Error
+                        "met_sync_error_last5_rel":met_last_5_sync_error_rel,
+                        "nomet_sync_error_first5_rel":nomet_first_5_sync_error_rel,
+                        "nomet_sync_error_last5_rel":nomet_last_5_sync_error_rel,
                         # Coefficient of Variation
                         "met_cv_last5":met_last_5_cv,
-                        "met_cv_last10":met_last_10_cv,
-                        "nomet_cv_last20":nomet_last_20_cv,
                         "nomet_cv_first5":nomet_first_5_cv,
                         "nomet_cv_last5":nomet_last_5_cv,
                         # Drift
-                        "nomet_drift":nomet_drift
+                        "nomet_drift":nomet_drift * 1000,
+                        "nomet_drift_rel":nomet_drift_rel,
+                        "nomet_drift_regression":nomet_drift_regression
                         }
         processed_results.append(trial_metrics)
 
