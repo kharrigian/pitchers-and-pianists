@@ -590,6 +590,59 @@ fig.tight_layout()
 fig.savefig(stats_plots + "drift_trialspeed_bar.png")
 plt.close()
 
+## Standard Bar of Drift vs. Trial Speed, broken down by musicianship
+drift_by_trial_speed_me_avg = mean_results.groupby(["trial_speed","musical_experience"]).agg({drift_metric: lambda values: tuple(bootstrap_ci(values, sample_percent = 70))})
+for i in range(3): drift_by_trial_speed_me_avg[i] = drift_by_trial_speed_me_avg[drift_metric].map(lambda j: j[i])
+bar_width = .95/2
+fig, ax = plt.subplots(1, 1, figsize = standard_fig, sharex = True, sharey = True)
+for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
+    for m in [0, 1]:
+        data_to_plot = drift_by_trial_speed_me_avg.loc[trial_speed, m]
+        ax.bar(0.025 + t + m*bar_width, data_to_plot[1],
+                yerr = np.array([data_to_plot[1]-data_to_plot[0], data_to_plot[2]-data_to_plot[1]]).reshape(-1,1),
+                color = "white" if m == 0 else "lightgray", alpha = 1, edgecolor = "black",
+                label = {0:"No Musical Experience",1:"Has Musical Experience"}[m] if t == 0 else "",
+                width = bar_width, align = "edge")
+ax.axhline(0, color = "black", linewidth = 1)
+ax.set_xticks(np.arange(3)+.5)
+ax.set_xticklabels(["Slowed Down", "No Change", "Sped Up"])
+ax.tick_params(labelsize = 14)
+ax.set_ylabel("Drift (ITI Percent Change)", fontsize = 16)
+ax.set_xlabel("Trial Condition", fontsize = 16, labelpad = 15)
+ax.legend(loc = "upper left", fontsize = 14, frameon = True, facecolor = "white")
+ax.set_ylim(-2.1,2.1)
+ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
+fig.tight_layout()
+fig.savefig(stats_plots + "drift_trialspeed_musicalexperience_bar.png")
+plt.close()
+
+
+## Standard Bar of Drift vs. Trial Speed, broken down by gender
+drift_by_trial_speed_gender_avg = mean_results.groupby(["trial_speed","gender"]).agg({drift_metric: lambda values: tuple(bootstrap_ci(values, sample_percent = 70))})
+for i in range(3): drift_by_trial_speed_gender_avg[i] = drift_by_trial_speed_gender_avg[drift_metric].map(lambda j: j[i])
+bar_width = .95/2
+fig, ax = plt.subplots(1, 1, figsize = standard_fig, sharex = True, sharey = True)
+for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
+    for m in [0, 1]:
+        data_to_plot = drift_by_trial_speed_gender_avg.loc[trial_speed, m]
+        ax.bar(0.025 + t + m*bar_width, data_to_plot[1],
+                yerr = np.array([data_to_plot[1]-data_to_plot[0], data_to_plot[2]-data_to_plot[1]]).reshape(-1,1),
+                color = "white" if m == 0 else "lightgray", alpha = 1, edgecolor = "black",
+                label = {0:"Male",1:"Female"}[m] if t == 0 else "",
+                width = bar_width, align = "edge")
+ax.axhline(0, color = "black", linewidth = 1)
+ax.set_xticks(np.arange(3)+.5)
+ax.set_xticklabels(["Slowed Down", "No Change", "Sped Up"])
+ax.tick_params(labelsize = 14)
+ax.set_ylabel("Drift (ITI Percent Change)", fontsize = 16)
+ax.set_xlabel("Trial Condition", fontsize = 16, labelpad = 15)
+ax.legend(loc = "upper left", fontsize = 14, frameon = True, facecolor = "white")
+ax.set_ylim(-1.75,1.75)
+ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
+fig.tight_layout()
+fig.savefig(stats_plots + "drift_trialspeed_gender_bar.png")
+plt.close()
+
 ################################################################################
 ### Drift Analysis (Absolute)
 ################################################################################
