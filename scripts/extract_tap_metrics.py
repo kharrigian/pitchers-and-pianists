@@ -133,10 +133,13 @@ for sub, subject_file in enumerate(tapping_filenames):
         nomet_last_5_cv = np.std(nomet_itis_last5) / np.mean(nomet_itis_last5)
 
         # Drift (pct change of first 5 median to last 5 median)
+        met_last_5_median = np.median(met_itis_last5)
         nomet_first_5_median = np.median(nomet_itis_first5)
         nomet_last_5_median = np.median(nomet_itis_last5)
-        nomet_drift = nomet_last_5_median - nomet_first_5_median
-        nomet_drift_rel = (max(nomet_drift, 1./sample_rate) if nomet_drift >= 0 else nomet_drift) / nomet_first_5_median * 100
+        # nomet_drift = nomet_last_5_median - nomet_first_5_median
+        nomet_drift = nomet_last_5_median - met_last_5_median
+        # nomet_drift_rel = (max(nomet_drift, 1./sample_rate) if nomet_drift >= 0 else nomet_drift) / nomet_first_5_median * 100
+        nomet_drift_rel = (max(nomet_drift, 1./sample_rate) if nomet_drift >= 0 else nomet_drift) / met_last_5_median * 100
 
 		# Drift (Regression Coefficient)
         y = nomet_itis[nomet_mask_nontransient][:,2]
