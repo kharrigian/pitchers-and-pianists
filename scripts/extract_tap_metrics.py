@@ -105,36 +105,36 @@ for sub, subject_file in enumerate(tapping_filenames):
         nomet_itis = trial_tap_data['no_metronome'].astype(float) / sample_rate
 
         # Important Sections
-        met_mask_last5 = np.nonzero(met_itis[:,1] >= 5.)[0]
+        met_mask_nontransient = np.nonzero(met_itis[:,1] >= 5.)[0]
         nomet_mask_nontransient = np.nonzero(nomet_itis[:, 1] >= 20.)[0]
 
         # If either masks don't have minimum number of taps, break
-        if len(met_mask_last5) < 5 or len(nomet_mask_nontransient) < 10:
+        if len(met_mask_nontransient) < 8 or len(nomet_mask_nontransient) < 8:
             continue
 
         # Isolate ITIs within each Sections
-        met_itis_last5 = met_itis[met_mask_last5][-5:, 2]
-        nomet_itis_first5 = nomet_itis[nomet_mask_nontransient][:5, 2]
-        nomet_itis_last5 = nomet_itis[nomet_mask_nontransient][-5:, 2]
+        met_itis_last5 = met_itis[met_mask_nontransient][-8:, 2]
+        # nomet_itis_first5 = nomet_itis[nomet_mask_nontransient][:5, 2]
+        nomet_itis_last5 = nomet_itis[nomet_mask_nontransient][-8:, 2]
 
         # Absolute Synchronization Error (median - trial_period)
         met_last_5_sync_error = np.median(met_itis_last5) - expected_iti
-        nomet_first_5_sync_error = np.median(nomet_itis_first5) - expected_iti
+        # nomet_first_5_sync_error = np.median(nomet_itis_first5) - expected_iti
         nomet_last_5_sync_error = np.median(nomet_itis_last5) - expected_iti
 
         # Relative Synchronization Error (median - trial period) / trial_period
         met_last_5_sync_error_rel = (max(met_last_5_sync_error, 1./sample_rate) if met_last_5_sync_error >= 0 else met_last_5_sync_error) / expected_iti * 100
-        nomet_first_5_sync_error_rel = (max(nomet_first_5_sync_error, 1./sample_rate) if nomet_first_5_sync_error >= 0 else nomet_first_5_sync_error) / expected_iti * 100
+        # nomet_first_5_sync_error_rel = (max(nomet_first_5_sync_error, 1./sample_rate) if nomet_first_5_sync_error >= 0 else nomet_first_5_sync_error) / expected_iti * 100
         nomet_last_5_sync_error_rel = (max(nomet_last_5_sync_error, 1./sample_rate) if nomet_last_5_sync_error >= 0 else nomet_last_5_sync_error) / expected_iti * 100
 
         # Coefficient of Variation (std/mean)
         met_last_5_cv = np.std(met_itis_last5) / np.mean(met_itis_last5)
-        nomet_first_5_cv = np.std(nomet_itis_first5) / np.mean(nomet_itis_first5)
+        # nomet_first_5_cv = np.std(nomet_itis_first5) / np.mean(nomet_itis_first5)
         nomet_last_5_cv = np.std(nomet_itis_last5) / np.mean(nomet_itis_last5)
 
         # Drift (pct change of first 5 median to last 5 median)
         met_last_5_median = np.median(met_itis_last5)
-        nomet_first_5_median = np.median(nomet_itis_first5)
+        # nomet_first_5_median = np.median(nomet_itis_first5)
         nomet_last_5_median = np.median(nomet_itis_last5)
         # nomet_drift = nomet_last_5_median - nomet_first_5_median
         nomet_drift = nomet_last_5_median - met_last_5_median
@@ -159,15 +159,15 @@ for sub, subject_file in enumerate(tapping_filenames):
                         ### Trial Results ###
                         # Synchronization Error
                         "met_sync_error_last5":met_last_5_sync_error * 1000,
-                        "nomet_sync_error_first5":nomet_first_5_sync_error * 1000,
+                        # "nomet_sync_error_first5":nomet_first_5_sync_error * 1000,
                         "nomet_sync_error_last5":nomet_last_5_sync_error * 1000,
                         # Relative Synchronization Error
                         "met_sync_error_last5_rel":met_last_5_sync_error_rel,
-                        "nomet_sync_error_first5_rel":nomet_first_5_sync_error_rel,
+                        # "nomet_sync_error_first5_rel":nomet_first_5_sync_error_rel,
                         "nomet_sync_error_last5_rel":nomet_last_5_sync_error_rel,
                         # Coefficient of Variation
                         "met_cv_last5":met_last_5_cv,
-                        "nomet_cv_first5":nomet_first_5_cv,
+                        # "nomet_cv_first5":nomet_first_5_cv,
                         "nomet_cv_last5":nomet_last_5_cv,
                         # Drift
                         "nomet_drift":nomet_drift * 1000,

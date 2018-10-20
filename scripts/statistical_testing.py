@@ -98,12 +98,26 @@ def summarize_lm_model(model, alpha = 0.05):
     ## Display
     return model_summary, wald_test
 
+## Wald Significant Values
+def print_significant(model, wald_stats):
+    """
+    Print out significant effects
+    """
+    sample_size = int(model.summary().tables[0].set_index(0).loc["No. Groups:", 1])
+    sig_effects = wald_stats.loc[wald_stats.significant == "*"].copy()
+    for factor in sig_effects.index:
+        chi2 = wald_stats.loc[factor]["chi_squared"]
+        p = wald_stats.loc[factor]["pvalue"].item()
+        df = wald_stats.loc[factor]["df_constraint"]
+        outstring = "- {} chi^2({}, N = {}) = {:.5f}, p = {:.5f}".format(factor, df, sample_size, chi2, p )
+        print(outstring)
+
 ## Bootstrapped Confidence Interval
 def bootstrap_ci(values, alpha = 0.05, func = np.mean, sample_percent = 20, samples = 1000):
     processed_vals = []
     values = np.array(values)
     for sample in range(samples):
-        sample_vals = np.random.choice(values, int(values.shape[0] * sample_percent/100.), replace = False)
+        sample_vals = np.random.choice(values, int(values.shape[0] * sample_percent/100.), replace = True)
         processed_vals.append(func(sample_vals))
     return np.percentile(processed_vals, [alpha*100/2, 50, 100. - (alpha*100/2)])
 
@@ -137,12 +151,14 @@ class ExponentialFit:
 
 # CV Variables
 cv_sync_metrics = ["met_cv_last5"]
-cv_cont_metrics = ["nomet_cv_first5","nomet_cv_last5"]
+cv_cont_metrics = ["nomet_cv_last5"]
+# cv_cont_metrics = ["nomet_cv_first5","nomet_cv_last5"]
 cv_metrics = cv_sync_metrics + cv_cont_metrics
 
 # Error Variables
 error_sync_metrics = ["met_sync_error_last5", "met_sync_error_last5_rel"]
-error_cont_metrics = ["nomet_sync_error_first5","nomet_sync_error_last5","nomet_sync_error_first5_rel","nomet_sync_error_last5_rel"]
+error_cont_metrics = ["nomet_sync_error_last5","nomet_sync_error_last5_rel"]
+# error_cont_metrics = ["nomet_sync_error_first5","nomet_sync_error_last5","nomet_sync_error_first5_rel","nomet_sync_error_last5_rel"]
 error_metrics = error_sync_metrics + error_cont_metrics
 
 # Drift Variables
@@ -195,12 +211,8 @@ results["healthy"] = np.logical_not(results.specify_disorder.isin(disorder_filte
 ###############
 
 # Absolute Synchronization Error (For when we don't care about directional differences, just absolute)
-for error in ["met_sync_error_last5","nomet_sync_error_first5","nomet_sync_error_last5","nomet_drift"]:
+for error in error_metrics + drift_metrics:
     results["abs_%s" % error] = np.abs(results[error])
-    results["abs_%s_rel" % error] = np.abs(results[error+"_rel"])
-
-# Absolute Drift in Regression Coefficient
-results["abs_nomet_drift_regression"] = np.abs(results["nomet_drift_regression"])
 
 # Update Variable Groups
 error_metrics = error_metrics + ["abs_{}".format(met) for met in error_metrics]
@@ -233,7 +245,7 @@ subject_deduped = results.drop_duplicates("subject")
 mean_pp, std_pp = subject_deduped.preferred_period.mean(), subject_deduped.preferred_period.std()
 counts, bins = np.histogram(subject_deduped["preferred_period"], 20)
 fig, ax = plt.subplots(1,1, figsize = standard_fig, sharey = False, sharex = False)
-b = ax.hist(subject_deduped["preferred_period"], bins = bins, normed = False, color = "blue", edgecolor = "navy", alpha = .8)
+b = ax.hist(subject_deduped["preferred_period"], bins = bins, normed = False, color = "blue", edgecolor = "navy", alpha = .5)
 ax.set_xlabel("Preferred Period (ms)", fontsize = 18, fontweight = "bold")
 ax.set_ylabel("Subjects", fontsize = 18, fontweight = "bold")
 ax.spines['right'].set_visible(False)
@@ -245,7 +257,7 @@ plt.close()
 
 ## No Correlation between age and preferred period
 fig, ax = plt.subplots(1,1, figsize = standard_fig, sharey = False, sharex = False)
-ax.scatter(subject_deduped["age"], subject_deduped["preferred_period"], color = "blue", edgecolor="navy", alpha = .8,
+ax.scatter(subject_deduped["age"], subject_deduped["preferred_period"], color = "blue", edgecolor="navy", alpha = .5,
             s = 50)
 ax.set_xlabel("Age", fontsize = 18, fontweight = "bold")
 ax.set_ylabel("Preferred period (ms)", fontsize = 18, fontweight = "bold")
@@ -271,7 +283,7 @@ for a, age in enumerate(subject_deduped.age_bin.unique()):
     for g, gender in enumerate(["Female","Male"]):
         demo_count = len(subject_deduped.loc[(subject_deduped.age_bin == age)&(subject_deduped.gender==gender)])
         ax.bar(0.025 + g*0.45 + a, demo_count, color = {"Male":"blue","Female":"red"}[gender],
-        alpha = .8, align = "edge", width = .45, label = gender if a == 0 else "",
+        alpha = .5, align = "edge", width = .45, label = gender if a == 0 else "",
         edgecolor = {"Male":"navy","Female":"darkred"}[gender])
         if demo_count > 0:
             ax.text(0.25 + g*0.45 + a, demo_count + 1, demo_count, ha = "center", fontsize = 18)
@@ -286,7 +298,7 @@ ax.spines['top'].set_visible(False)
 lim = ax.set_ylim(0, max_count+5)
 ax.tick_params(labelsize = 16)
 fig.tight_layout()
-fig.savefig(stats_plots + "demographics.png")
+fig.savefig(stats_plots + "demographics.png", dpi=300)
 plt.close()
 
 ## Age + Gender + Musical Experience
@@ -297,7 +309,7 @@ for a, age in enumerate(subject_deduped.age_bin.unique()):
         for e, experience in enumerate([1,0]):
             demo_count = len(subject_deduped.loc[(subject_deduped.age_bin == age)&(subject_deduped.gender==gender)&(subject_deduped.musical_experience==experience)])
             ax.bar(0.025 + g*0.45 + a, demo_count, bottom = bottom, color = {"Male":"blue","Female":"red"}[gender],
-            alpha = 0.5 if e == 1 else .8, align = "edge", width = .45,
+            alpha = 0.25 if e == 1 else .6, align = "edge", width = .45,
             label = "{} ({})".format(gender, {1:"w/ M.E.",0:"w/o M.E."}[experience]) if a == 0 else "",
             edgecolor = {"Male":"navy","Female":"darkred"}[gender])
             bottom += demo_count
@@ -310,7 +322,7 @@ ax.tick_params(labelsize = 16)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 fig.tight_layout()
-fig.savefig(stats_plots + "demographics_musicalexperience.png")
+fig.savefig(stats_plots + "demographics_musicalexperience.png", dpi=300)
 plt.close()
 
 ###############
@@ -325,10 +337,10 @@ subject_deduped["musical_experience_specified"] = subject_deduped.apply(musical_
 musical_experience_dist = subject_deduped.musical_experience_specified.value_counts()
 music_exp_subset = subject_deduped.loc[subject_deduped.musical_experience_yrs >= 1]
 fig, ax = plt.subplots(1,2, figsize = standard_fig)
-musical_experience_dist.plot.barh(ax = ax[0], color = "blue", edgecolor = "navy", alpha = .8)
+musical_experience_dist.plot.barh(ax = ax[0], color = "blue", edgecolor = "navy", alpha = .5)
 ax[0].set_yticks(np.arange(3)); ax[0].set_yticklabels(musical_experience_dist.index.values, multialignment = "center")
-ax[1].scatter(music_exp_subset["age"], music_exp_subset["musical_experience_yrs"], color = "blue", edgecolor = "navy", s = 50, alpha = .8)
-ax[1].plot([0, music_exp_subset.age.max()], [0, music_exp_subset.age.max()], linestyle = "--", color = "navy", alpha = .8)
+ax[1].scatter(music_exp_subset["age"], music_exp_subset["musical_experience_yrs"], color = "blue", edgecolor = "navy", s = 50, alpha = .5)
+ax[1].plot([0, music_exp_subset.age.max()], [0, music_exp_subset.age.max()], linestyle = "--", color = "navy", alpha = .5)
 ax[0].set_xlabel("Subjects",fontsize=18, fontweight = "bold")
 ax[1].set_xlabel("Age",fontsize=18, fontweight = "bold"); ax[1].set_ylabel("Years of Musical Experience", labelpad = 10, fontsize=18, fontweight = "bold")
 for a in ax:
@@ -347,18 +359,18 @@ for x, experience in enumerate([0,1]):
     for g, gender in enumerate(["Female","Male"]):
         demo_counts = len(subject_deduped.loc[(subject_deduped.musical_experience==experience)&
                                              (subject_deduped.gender==gender)])
-        ax[0].bar(0.025 + x*.45 + g, demo_counts, color = {0:"red",1:"blue"}[experience],
-                  alpha = .8, label = {1:"Has Musical Experience",0:"No Musical Experience"}[experience] if g == 0 else "",
-                  width = .45, align = "edge", edgecolor = "navy" if x == 1 else "darkred")
+        ax[0].bar(0.025 + x*.45 + g, demo_counts, color = {0:"orange",1:"blueviolet"}[experience],
+                  alpha = .5, label = {1:"Has Musical Experience",0:"No Musical Experience"}[experience] if g == 0 else "",
+                  width = .45, align = "edge", edgecolor = "darkviolet" if x == 1 else "darkorange")
         ax[0].text(0.025+ x*.45 + .45/2 + g, demo_counts + 4, demo_counts + 1, ha="center", fontsize = 16)
         max_gender_count = demo_counts if demo_counts > max_gender_count else max_gender_count
 
     for a, age in enumerate(subject_deduped.age_bin.unique()):
         demo_counts = len(subject_deduped.loc[(subject_deduped.musical_experience==experience)&
                                              (subject_deduped.age_bin==age)])
-        ax[1].bar(0.025 + x*.45 + a, demo_counts, color = {0:"red",1:"blue"}[experience],
-                  alpha = .8, label =  {1:"Has Musical Experience",0:"No Musical Experience"}[experience] if a == 0 else "",
-                  width = .45, align = "edge", edgecolor = "navy" if x == 1 else "darkred")
+        ax[1].bar(0.025 + x*.45 + a, demo_counts, color = {0:"orange",1:"blueviolet"}[experience],
+                  alpha = .5, label =  {1:"Has Musical Experience",0:"No Musical Experience"}[experience] if a == 0 else "",
+                  width = .45, align = "edge", edgecolor = "darkviolet" if x == 1 else "darkorange")
         ax[1].text(0.025+ x*.45 +.45/2 + a, demo_counts + 1, demo_counts + 1, ha="center", fontsize = 16)
         max_age_count = demo_counts if demo_counts > max_age_count else max_age_count
 ax[0].set_ylim(0, max_gender_count+20)
@@ -418,17 +430,19 @@ merged_results_df.index = np.arange(len(merged_results_df))
 ################################################################################
 
 ## Fit Mixed LM Model
-error_model_formula = "error ~ C(gender) + age + preferred_period + trial_speed + C(musical_experience) + C(healthy) + C(condition)"
+error_model_formula = "error ~ C(gender) + age + preferred_period + trial_speed + C(musical_experience) + C(condition)"
 error_model = smf.mixedlm(error_model_formula, data = merged_results_df, groups = merged_results_df["subject"]).fit(reml=True)
 error_summary, error_wald = summarize_lm_model(error_model)
 
+print("Error Effects:"); print_significant(error_model, error_wald)
+
 """
-Effects:
-- Trial Speed (p = 0.003, chi^2 = 11.355223)
-- Musical Experience (p = 0.0005000, chi^2 = 12.115626)
-- Condition (p << 0.001, chi^2 = 544.478)
-- Age (p = 0.0017, chi^2 = 9.830860)
-- Preferred Period (p = 0.00711, chi^2 = 7.244856)
+Error Effects:
+- trial_speed chi^2(2, N = 303) = 12.05179, p = 0.00242
+- C(musical_experience) chi^2(1, N = 303) = 12.09231, p = 0.00051
+- C(condition) chi^2(1, N = 303) = 651.62290, p = 0.00000
+- age chi^2(1, N = 303) = 9.33098, p = 0.00225
+- preferred_period chi^2(1, N = 303) = 8.66342, p = 0.00325
 """
 
 ## Plot Musical Experience
@@ -443,8 +457,8 @@ for c, cond in enumerate(["paced","unpaced"]):
                                                         (musical_experience_avg.musical_experience==experience)]
             ax[c].bar(0.025 + s + bar_width*e, data_to_plot["error"]["mean"],
                     yerr=data_to_plot["error"]["<lambda>"],
-                    color = "blue" if e == 0 else "red", edgecolor = "navy" if e == 0 else "darkred", align = "edge", width = bar_width,
-                    label = "" if s != 0 else "No Musical Experience" if e == 0 else "Has Musical Experience", alpha = .8)
+                    color = "blueviolet" if e == 0 else "orange", edgecolor = "darkviolet" if e == 0 else "darkorange", align = "edge", width = bar_width,
+                    label = "" if s != 0 else "No Musical Experience" if e == 0 else "Has Musical Experience", alpha = .5)
 for a in ax:
     a.set_xticks(np.arange(3)+.5)
     a.set_xticklabels(["80%","100%","120%"])
@@ -458,7 +472,7 @@ ax[0].legend(loc = "upper left", fontsize = 12)
 fig.tight_layout()
 fig.subplots_adjust(wspace = .1, bottom = .13)
 fig.text(0.55, 0.02, 'Metronome Condition', ha='center', fontsize = 14, fontweight = "bold")
-fig.savefig(stats_plots + "error_musical_experience.png")
+fig.savefig(stats_plots + "error_musical_experience.png", dpi=300)
 plt.close()
 
 ## Plot Age
@@ -472,20 +486,21 @@ for c, cond in enumerate(["paced","unpaced"]):
     se_data_to_plot = age_bin_sem.loc[age_bin_sem.condition == cond]
     ax.errorbar(age_bin_points, ci_data_to_plot[1].values,
                         yerr = se_data_to_plot["error"].values,
-                        color = "blue" if c == 0 else "red", linewidth = 2, alpha = .8)
+                        color = "teal" if c == 0 else "slategray", linewidth = 2, alpha = .5)
     ax.fill_between([age_bin_points[0]-1] + age_bin_points[1:-1] + [age_bin_points[-1]+1], ci_data_to_plot[0].values, ci_data_to_plot[2].values,
-                    color = "blue" if c == 0 else "red", alpha = .5,
+                    color = "teal" if c == 0 else "slategray", alpha = .3,
                     label = "Synchronization" if c == 0 else "Continuation")
-ax.set_ylim(bottom = 0, top = 14)
+ax.set_ylim(bottom = 0, top = 15)
 ax.set_xlabel("Age", fontsize = 16, labelpad = 10, fontweight = "bold")
 ax.tick_params(labelsize = 14)
+ax.set_xticks(age_bin_points); ax.set_xticklabels(age_bin_strings)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 ax.set_ylabel("Error", fontsize = 16, labelpad = 10, fontweight = "bold")
 ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
 ax.legend(loc = "upper right", frameon = True, facecolor = "white", fontsize = 14)
 fig.tight_layout()
-fig.savefig(stats_plots + "error_age.png")
+fig.savefig(stats_plots + "error_age.png", dpi=300)
 plt.close()
 
 
@@ -494,19 +509,27 @@ plt.close()
 ################################################################################
 
 ## Fit Mixed LM Model
-drift_model_formula = "drift ~ C(gender) + age + preferred_period + trial_speed + C(musical_experience) + C(healthy)"
+drift_model_formula = "drift ~ C(gender) + age + preferred_period + trial_speed + C(musical_experience)"
 drift_model = smf.mixedlm(drift_model_formula, data = nomet_df, groups = nomet_df["subject"]).fit(reml=True)
 drift_summary, drift_wald = summarize_lm_model(drift_model)
 
+print("Drift Effects:"); print_significant(drift_model, drift_wald)
+
 """
-Drift Effects
-- Trial Speed (p = 0.00484, chi^2 = 15.265605)
+Drift Effects:
+- trial_speed chi^2(2, N = 303) = 49.25980, p = 0.00000
 """
 
 ## T-Tests against no drift
 slowed_t = sm.stats.ttest_ind(np.zeros(int(len(nomet_df)/3)), nomet_df.loc[nomet_df.trial_speed == "SlowedDown"]["drift"].values)
 constant_t = sm.stats.ttest_ind(np.zeros(int(len(nomet_df)/3)), nomet_df.loc[nomet_df.trial_speed == "NoChange"]["drift"].values)
 sped_t = sm.stats.ttest_ind(np.zeros(int(len(nomet_df)/3)), nomet_df.loc[nomet_df.trial_speed == "SpedUp"]["drift"].values)
+
+"""
+- slowed_t (1.3275567940880735, 0.1848260950433708, 604.0)
+- sped_t (-6.2771137220428477, 6.5885968506837101e-10, 604.0)
+- constant_t (-2.1877377970784138, 0.029071224825391283, 604.0)
+"""
 
 ## Standard Bar Plot of Drift vs. Trial Speed
 drift_by_trial_speed_avg = nomet_df.groupby(["trial_speed"]).agg({"drift":[np.mean, std_error]})
@@ -515,17 +538,19 @@ for t, trial_speed in enumerate(["SpedUp","NoChange","SlowedDown"]):
     data_to_plot = drift_by_trial_speed_avg.loc[trial_speed]
     ax.bar(t, data_to_plot["drift"]["mean"],
             yerr = data_to_plot["drift"]["<lambda>"],
-            color = "blue", alpha = .8, edgecolor = "navy")
+            color = "blue", alpha = .5, edgecolor = "navy")
 ax.axhline(0, color = "black", linewidth = 1)
 ax.set_xticks(np.arange(3))
 ax.set_xticklabels(["80%\nPreferred Period","100%\nPreferred Period","120%\nPreferred Period"])
 ax.set_xlabel("Metronome Condition", fontsize = 16, labelpad = 15, fontweight = "bold")
 ax.tick_params(labelsize = 14)
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
 ax.set_ylabel("Drift (ITI Percent Change)", fontsize = 16, fontweight = "bold")
 ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
 ax.set_ylim(-1.2,3.2)
 fig.tight_layout()
-fig.savefig(stats_plots + "drift_trialspeed_bar.png")
+fig.savefig(stats_plots + "drift_trialspeed_bar.png", dpi=300)
 plt.close()
 
 ## Standard Bar of Drift vs. Trial Speed, broken down by musicianship
@@ -537,7 +562,7 @@ for t, trial_speed in enumerate(["SpedUp","NoChange","SlowedDown"]):
         data_to_plot = drift_by_trial_speed_me_avg.loc[trial_speed, m]
         ax.bar(0.025 + t + m*bar_width, data_to_plot["drift"]["mean"],
                 yerr =data_to_plot["drift"]["<lambda>"],
-                color = "blue" if m == 0 else "red", alpha = .8, edgecolor ="navy" if m == 0 else "darkred",
+                color = "blueviolet" if m == 0 else "orange", alpha = .5, edgecolor ="darkviolet" if m == 0 else "darkorange",
                 label = {0:"No Musical Experience",1:"Has Musical Experience"}[m] if t == 0 else "",
                 width = bar_width, align = "edge")
 ax.axhline(0, color = "black", linewidth = 1)
@@ -547,10 +572,12 @@ ax.set_xlabel("Metronome Condition", fontsize = 16, labelpad = 15, fontweight = 
 ax.tick_params(labelsize = 14)
 ax.set_ylabel("Drift (ITI Percent Change)", fontsize = 16, fontweight = "bold")
 ax.legend(loc = "upper right", fontsize = 14, frameon = True, facecolor = "white")
-ax.set_ylim(-1.8,3.2)
+ax.set_ylim(-2.2,3.2)
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
 ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
 fig.tight_layout()
-fig.savefig(stats_plots + "drift_trialspeed_musicalexperience_bar.png")
+fig.savefig(stats_plots + "drift_trialspeed_musicalexperience_bar.png", dpi=300)
 plt.close()
 
 ## Standard Bar of Drift vs. Trial Speed, broken down by gender
@@ -562,7 +589,7 @@ for t, trial_speed in enumerate(["SpedUp","NoChange","SlowedDown"]):
         data_to_plot = drift_by_trial_speed_gender_avg.loc[trial_speed, m]
         ax.bar(0.025 + t + m*bar_width, data_to_plot["drift"]["mean"],
                 yerr = data_to_plot["drift"]["<lambda>"],
-                color = "blue" if m == 0 else "red", alpha = .8, edgecolor = "navy" if m == 0 else "darkred",
+                color = "blue" if m == 0 else "red", alpha = .5, edgecolor = "navy" if m == 0 else "darkred",
                 label = {0:"Male",1:"Female"}[m] if t == 0 else "",
                 width = bar_width, align = "edge")
 ax.axhline(0, color = "black", linewidth = 1)
@@ -572,10 +599,43 @@ ax.set_xlabel("Metronome Condition", fontsize = 16, labelpad = 15, fontweight = 
 ax.tick_params(labelsize = 14)
 ax.set_ylabel("Drift (ITI Percent Change)", fontsize = 16, fontweight = "bold")
 ax.legend(loc = "upper right", fontsize = 14, frameon = True, facecolor = "white")
-ax.set_ylim(-1.3,3.7)
+ax.set_ylim(-1.9,3.7)
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
 ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
 fig.tight_layout()
-fig.savefig(stats_plots + "drift_trialspeed_gender_bar.png")
+fig.savefig(stats_plots + "drift_trialspeed_gender_bar.png", dpi=300)
+plt.close()
+
+## Combined Standard Drift + Age Gender
+fig, ax = plt.subplots(1, 2, figsize = standard_fig, sharex = False, sharey = True)
+for t, trial_speed in enumerate(["SpedUp","NoChange","SlowedDown"]):
+    data_to_plot = drift_by_trial_speed_avg.loc[trial_speed]
+    ax[0].bar(t, data_to_plot["drift"]["mean"],
+            yerr = data_to_plot["drift"]["<lambda>"],
+            color = "blue", alpha = .5, edgecolor = "navy")
+ax[0].set_xticks(np.arange(3))
+for t, trial_speed in enumerate(["SpedUp","NoChange","SlowedDown"]):
+    for m in [0, 1]:
+        data_to_plot = drift_by_trial_speed_gender_avg.loc[trial_speed, m]
+        ax[1].bar(0.025 + t + m*bar_width, data_to_plot["drift"]["mean"],
+                yerr = data_to_plot["drift"]["<lambda>"],
+                color = "blue" if m == 0 else "red", alpha = .5, edgecolor = "navy" if m == 0 else "darkred",
+                label = {0:"Male",1:"Female"}[m] if t == 0 else "",
+                width = bar_width, align = "edge")
+ax[1].set_xticks(np.arange(3)+.5)
+ax[1].legend(loc = "upper right", fontsize = 14, frameon = True, facecolor = "white")
+for i in range(2):
+    ax[i].axhline(0, color = "black", linewidth = 1)
+    ax[i].set_xticklabels(["80%","100%","120%"])
+    ax[i].tick_params(labelsize = 14)
+    ax[i].set_xlabel("Metronome Condition", fontsize = 16, labelpad = 15, fontweight = "bold")
+    ax[i].spines['right'].set_visible(False)
+    ax[i].spines['top'].set_visible(False)
+    ax[i].yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
+ax[0].set_ylabel("Drift (ITI Percent Change)", fontsize = 16, fontweight = "bold")
+fig.tight_layout()
+fig.savefig(stats_plots + "combined_drift_standard_and_gender.png", dpi=300)
 plt.close()
 
 ## Within-Subject
@@ -589,14 +649,21 @@ slowed_t = sm.stats.ttest_ind(np.zeros(int(len(drift_pivot_melted)/2)), drift_pi
 sped_t = sm.stats.ttest_ind(np.zeros(int(len(drift_pivot_melted)/2)), drift_pivot_melted.loc[drift_pivot_melted.variable == "sped_change"]["value"].values)
 
 """
-Slowed condition ->
-Sped condition ->
+Slowed condition -> (3.7655544977830351, 0.00018242710331818079, 604.0)
+Sped condition -> (-3.7575886298128562, 0.00018819354900583791, 604.0)
 """
 
 ## Mixed LM Model
-rel_model_test_form = "value ~ C(gender) + age + preferred_period + variable + C(musical_experience) + C(healthy)"
+rel_model_test_form = "value ~ C(gender) + age + preferred_period + variable + C(musical_experience)"
 rel_model = smf.mixedlm(rel_model_test_form, data = drift_pivot_melted, groups = drift_pivot_melted["subject"]).fit()
 rel_summary, rel_wald = summarize_lm_model(rel_model)
+
+print("Within-Subject Drift Effects:"); print_significant(rel_model, rel_wald)
+
+"""
+Within-Subject Drift Effects:
+- variable chi^2(1, N = 303) = 39.12849, p = 0.00000
+"""
 
 ## Plot Within-Subject Drift
 rel_drift_by_cond = drift_pivot_melted.groupby(["variable"]).agg({"value":[np.mean, std_error]}).reset_index()
@@ -605,15 +672,17 @@ for j, var in enumerate(["sped_change","slowed_change"]):
     data_to_plot = rel_drift_by_cond.loc[rel_drift_by_cond.variable == var]
     ax.bar(j, data_to_plot["value"]["mean"],
             yerr=data_to_plot["value"]["<lambda>"],
-            color = "blue", edgecolor = "navy", alpha = .8)
+            color = "blue", edgecolor = "navy", alpha = .5)
 ax.axhline(0, color = "black")
 ax.set_xticks([0,1]); ax.set_xticklabels(["80%\nPreferred Period","120%\nPreferred Period"])
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
 ax.set_xlabel("Metronome Condition", fontsize = 14, labelpad = 20, fontweight = "bold")
 ax.set_ylabel("Difference from 100%\nPreferred Period", ha = "center", va = "center", multialignment="center", labelpad = 20,
                 fontsize = 14, fontweight = "bold")
 ax.tick_params(labelsize = 14)
 fig.tight_layout()
-fig.savefig(stats_plots + "within_subject_drift.png")
+fig.savefig(stats_plots + "within_subject_drift.png", dpi=300)
 plt.close()
 
 ################################################################################
@@ -621,17 +690,19 @@ plt.close()
 ################################################################################
 
 ## Fit Mixed LM Model
-cv_model_form = "cv ~ C(gender) + age + preferred_period + trial_speed + C(musical_experience) + C(healthy) + C(condition)"
+cv_model_form = "cv ~ C(gender) + age + preferred_period + trial_speed + C(musical_experience) + C(condition)"
 cv_model = smf.mixedlm(cv_model_form, data = merged_results_df, groups = merged_results_df["subject"]).fit(reml=True)
 cv_model_summary, cv_wald = summarize_lm_model(cv_model)
 
+print("Variability Effects:"); print_significant(cv_model, cv_wald)
+
 """
-Variability effects
-- Trial Speed (p << 0.01, chi^2 = 19.066069)
-- Musical Experience (p = 0.000232, chi^2 = 13.551386)
-- Condition (p << 0.01, chi^2 = 27.32004)
-- Age (p << 0.01, chi^2 = 55.840934)
-- Preferred Period (p = 0.00643, chi^2 = 7.424108)
+Variability Effects:
+- trial_speed chi^2(2, N = 303) = 28.25395, p = 0.00000
+- C(musical_experience) chi^2(1, N = 303) = 14.03075, p = 0.00018
+- C(condition) chi^2(1, N = 303) = 47.48795, p = 0.00000
+- age chi^2(1, N = 303) = 63.15085, p = 0.00000
+- preferred_period chi^2(1, N = 303) = 10.08424, p = 0.00150
 """
 
 ## Age Effects
@@ -645,18 +716,19 @@ for c, cond in enumerate(["paced","unpaced"]):
     ci_data_to_plot = age_bin_var_ci.loc[age_bin_var_ci.condition == cond]
     ax.errorbar(age_bin_points, ci_data_to_plot[1].values,
                         yerr = avg_data_to_plot["cv"].values,
-                        color = "blue" if c == 0 else "red", linewidth = 2, alpha = .8)
+                        color = "teal" if c == 0 else "slategray", linewidth = 2, alpha = .7)
     ax.fill_between([age_bin_points[0]-1] + age_bin_points[1:-1] + [age_bin_points[-1]+1], ci_data_to_plot[0].values, ci_data_to_plot[2].values,
-                    color = "blue" if c == 0 else "red", alpha = .5,
+                    color = "teal" if c == 0 else "slategray", alpha = .3,
                     label = "Synchronization" if c == 0 else "Continuation")
 ax.set_xlabel("Age", fontsize = 16, labelpad = 10, fontweight = "bold")
+ax.set_xticks(age_bin_points); ax.set_xticklabels(age_bin_strings)
 ax.tick_params(labelsize = 14)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 ax.set_ylabel("Coefficient of Variation", fontsize = 16, labelpad = 10, fontweight = "bold")
 ax.legend(loc = "upper right", frameon = True, facecolor = "white", fontsize = 14)
 fig.tight_layout()
-fig.savefig(stats_plots + "variability_age.png")
+fig.savefig(stats_plots + "variability_age.png", dpi=300)
 plt.close()
 
 
@@ -669,10 +741,10 @@ for c, cond in enumerate(["paced","unpaced"]):
         data_to_plot = speed_var_avg.loc[(speed_var_avg.condition==cond)&(speed_var_avg.trial_speed==trial_speed)]
         ax.bar(0.025 + t + bar_width*c, data_to_plot["cv"]["mean"],
                 yerr = data_to_plot["cv"]["<lambda>"],
-                align = "edge", width = bar_width, color = "blue" if c == 0 else "red",
-                edgecolor = "navy" if c == 0 else "darkred",
+                align = "edge", width = bar_width, color = "teal" if c == 0 else "slategray",
+                edgecolor = "darkcyan" if c == 0 else "black",
                 label = {0:"Synchronization",1:"Continuation"}[c] if t == 0 else "",
-                alpha = .8)
+                alpha = .5)
 ax.set_xticks(np.arange(3)+.5)
 ax.set_xticklabels(["80%\nPreferred Period","100%\nPreferred Period","120%\nPreferred Period"])
 ax.set_xlabel("Metronome Condition", fontsize = 16, labelpad = 15, fontweight = "bold")
@@ -681,9 +753,9 @@ ax.spines['top'].set_visible(False)
 ax.tick_params(labelsize = 14)
 ax.set_ylabel("Coefficient of Variation", fontsize = 16, labelpad = 15, fontweight = "bold")
 ax.legend(loc = "upper right", frameon = True, facecolor = "white", fontsize = 12)
-ax.set_ylim(top = 0.065)
+ax.set_ylim(top = 0.07)
 fig.tight_layout()
-fig.savefig(stats_plots + "variability_trialspeed.png")
+fig.savefig(stats_plots + "variability_trialspeed.png", dpi=300)
 plt.close()
 
 ## Musical Experience + Variability
@@ -695,8 +767,8 @@ for c, cond in enumerate(["paced","unpaced"]):
         data_to_plot = data_to_plot.set_index("trial_speed").loc[["SpedUp","NoChange","SlowedDown"]]
         ax[c].bar(0.025 + np.arange(3) + .95/2*me, data_to_plot["cv"]["mean"].values,
                     yerr = data_to_plot["cv"]["<lambda>"].values,
-                    color = "blue" if me == 0 else "red", edgecolor = "navy" if me == 0 else "darkred",
-                    width = .95/2, alpha = .8, align = "edge",
+                    color = "blueviolet" if me == 0 else "orange", edgecolor = "darkviolet" if me == 0 else "darkorange",
+                    width = .95/2, alpha = .5, align = "edge",
                     label = "Has Musical Experience" if me == 1 else "No Musical Experience")
         ax[c].spines['right'].set_visible(False)
         ax[c].spines['top'].set_visible(False)
@@ -709,7 +781,7 @@ ax[0].legend(loc = "upper right", fontsize = 12, frameon = True, facecolor = "wh
 fig.text(0.55, 0.02, 'Metronome Condition', ha='center', fontsize = 14, fontweight = "bold")
 fig.tight_layout()
 fig.subplots_adjust(top = .9, bottom = .13)
-fig.savefig(stats_plots + "variability_musicalexperience_trialspeed.png")
+fig.savefig(stats_plots + "variability_musicalexperience_trialspeed.png", dpi=300)
 plt.close()
 
 ################################################################################

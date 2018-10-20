@@ -190,9 +190,10 @@ def find_taps(signal, expected_intertapinterval = 1000, use_hmm = True, peakutil
         state_preds_detected = hmm_first_pass(signal_quantized, expected_intertapinterval)
     else:
         state_preds_detected = findpeaks_first_pass(signal_quantized, expected_intertapinterval, percentile_thres = peakutils_threshold)
-    # Require Monotonic Increasing/Constant
-    increasing = pd.Series(signal_quantized).diff().fillna(0) > 0
-    state_preds_detected = [s for s in state_preds_detected if increasing[s-5:s+6].sum() > 0]
+    # Require Monotonic Increasing/Constant (Not applicable for peaks)
+    if use_hmm:
+        increasing = pd.Series(signal_quantized).diff().fillna(0) > 0
+        state_preds_detected = [s for s in state_preds_detected if increasing[s-5:s+6].sum() > 0]
     # Filter out double taps
     min_delay = expected_intertapinterval / 3
     last_tap = 0
