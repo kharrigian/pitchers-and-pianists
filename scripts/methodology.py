@@ -39,6 +39,7 @@ method_plots = plot_dir + "methodology/"
 rcParams['font.family'] = 'sans-serif'
 rcParams['font.sans-serif'] = ['Helvetica']
 rcParams["errorbar.capsize"] = 5
+FIGURE_FMT = ".pdf"
 
 ## Plot subdirectories
 for d in [plot_dir, method_plots]:
@@ -108,9 +109,9 @@ def plot_experimental_design(subject, trial):
     sync_taps = trial_taps[trial]["metronome"][-9:][:,0]
     cont_taps = trial_taps[trial]["no_metronome"][-9:][:,0]
     ax[0].fill_between([np.mean(sync_taps[-9:-7])/2000., 15], ax[0].get_ylim()[0] - 1, ax[0].get_ylim()[1] + 1,
-                        color = "blue", alpha = .2, label = "Synchronization Window")
+                        color = "blue", alpha = .2, label = "Sync. Window")
     ax[0].fill_between([np.mean(cont_taps[-9:-7])/2000., len(trial_force[trial-1])/2000.], ax[0].get_ylim()[0] - 1, ax[0].get_ylim()[1] + 1,
-                        color = "green", alpha = .2, label = "Continuation Window")
+                        color = "green", alpha = .2, label = "Cont. Window")
     met_ind = np.arange(len(trial_taps[trial]["metronome"]))+1
     nomet_ind = np.arange(max(met_ind)+1, max(met_ind)+1 + len(trial_taps[trial]["no_metronome"]))
     ax[1].plot(met_ind, trial_taps[trial]["metronome"][:,2]/2., color = "black", linewidth = 2, linestyle = "-")
@@ -120,14 +121,16 @@ def plot_experimental_design(subject, trial):
     ax[1].axvline(max(met_ind) + .5, linewidth = 3, linestyle = "--", color = "red", label = "Metronome Ends")
     ax[1].axhline(preferred_period, linestyle = "-.", color = "black", linewidth = 1.5)
     ax[1].fill_between([min(met_ind[-8:]) - .5, max(met_ind) + .5], ax[1].get_ylim()[0] - 100, ax[1].get_ylim()[1] + 100,
-                        color = "blue", alpha = .2, label = "Synchronization Window")
+                        color = "blue", alpha = .2, label = "Sync. Window")
     ax[1].fill_between([min(nomet_ind[-8:]) - .5, max(nomet_ind) + .5], ax[1].get_ylim()[0] - 100, ax[1].get_ylim()[1] + 100,
-                        color = "green", alpha = .2, label = "Continuation Window")
-    ax[1].text(max(nomet_ind)+1, preferred_period, "Preferred/Trial\nPeriod" if trial_frequency[trial-1] == 1 else "Preferred Period",
-                    fontsize = 14, va = "center", multialignment = "center")
+                        color = "green", alpha = .2, label = "Cont. Window")
+    t = ax[1].text(max(nomet_ind)+1, preferred_period, "Preferred/Trial\nPeriod" if trial_frequency[trial-1] == 1 else "Preferred Period",
+                    fontsize = 14, va = "center", multialignment = "center",
+                    bbox = dict(boxstyle='round', facecolor='white', alpha=1, pad = .15, edgecolor = 'gray'))
     if trial_frequency[trial-1] != 1:
         ax[1].axhline(preferred_period * trial_frequency[trial-1], linestyle = ":", color = "black", linewidth = 1.5)
-        ax[1].text(max(nomet_ind) + 1, preferred_period * trial_frequency[trial-1], "Trial Period",  fontsize = 14, va = "center")
+        ax[1].text(max(nomet_ind) + 1, preferred_period * trial_frequency[trial-1], "Trial Period",
+                  fontsize = 14, va = "center", bbox = dict(boxstyle='round', facecolor='white', alpha=1, pad = .15, edgecolor = 'gray'))
     ax[1].set_xlabel("Tap #", fontsize = 16, labelpad = 5, fontweight = "bold")
     ax[1].set_ylabel("Inter Tap\nInterval (ms)", fontsize = 16, labelpad = 5, multialignment = "center", fontweight = "bold")
     ax[1].set_xlim(-.5, max(nomet_ind)+.5)
@@ -144,51 +147,14 @@ def plot_experimental_design(subject, trial):
     ax[0].get_yaxis().set_label_coords(-0.1,0.5)
     ax[1].get_yaxis().set_label_coords(-0.1,0.5)
     handles, labels = ax[1].get_legend_handles_labels()
-    leg = fig.legend(handles, labels, loc = (.165, .935), ncol = 3, columnspacing=1, fontsize = 11, borderpad = .2, handlelength = 2)
-    for t in leg.texts:  t.set_multialignment('center')
+    leg = ax[0].legend(handles, labels, loc = (1.0075, .6), ncol = 1, columnspacing=1, fontsize = 14, borderpad = .15, handlelength = 2, edgecolor = "gray")
+    for t in leg.texts:
+        t.set_horizontalalignment("left")
     for a in ax:
         a.spines['right'].set_visible(False)
         a.spines['top'].set_visible(False)
     fig.tight_layout()
-    fig.subplots_adjust(right = .825, top = .91)
-    return fig, ax
-
-def plot_method_comparison(subject, trial, peakthresh = 50):
-    """
-    Compare tap detection methods
-    """
-    ## Check that subject data was processed
-    if subject not in tapping_data:
-        raise ValueError("Subject {} does not have any usable data".format(subject))
-    ## Identify relevant data
-    subject_data = tapping_data[subject]
-    preferred_period = float(subject_data["preferred_period_online"]) * 1000
-    trial_frequency = subject_data["frequency_sequence"][trial-1]
-    metronome_signal = subject_data["trial_metronome"][trial-1]
-    trial_force = subject_data["trial_force"][trial-1]
-    trial_taps = subject_data["processed_taps"][trial]
-    ## Get Taps using HMM Method
-    taps_hmm = trial_taps["inits"]
-    ## Get Taps using Standard Method
-    taps_standard = find_taps(trial_force, trial_frequency * preferred_period, use_hmm = False, peakutils_threshold = peakthresh)
-    ## Plot Comparison
-    fig, ax = plt.subplots(2, 1, figsize = standard_fig, sharex = True)
-    time_ind = np.arange(len(trial_force))/2000.
-    ax[0].plot(time_ind, trial_force, color = "black", linewidth = 2)
-    ax[0].vlines(taps_hmm / 2000., min(trial_force), max(trial_force) * 1.1, color = "red", linewidth = 1, linestyle = "-")
-    ax[1].plot(time_ind, trial_force, color = "black", linewidth = 2)
-    ax[1].vlines(taps_standard / 2000.,min(trial_force), max(trial_force) * 1.1,  color = "red", linewidth = 1, linestyle = "-")
-    for a in ax:
-        a.tick_params(labelsize = 14)
-        a.spines['right'].set_visible(False)
-        a.spines['top'].set_visible(False)
-        a.set_ylim(min(trial_force), max(trial_force) * 1.1)
-        a.set_ylabel("Force (N)", fontsize = 16, labelpad = 5, fontweight = "bold")
-        a.set_xlim(0, len(trial_force)/2000.)
-    ax[1].set_xlabel("Time (s)", fontsize = 16, labelpad = 5, fontweight = "bold")
-    ax[0].set_title("HMM-based Tap Detection", fontsize = 18)
-    ax[1].set_title("Peak-based Tap Detection", fontsize = 18)
-    fig.tight_layout()
+    fig.subplots_adjust(right = .76)
     return fig, ax
 
 def plot_method_comparison_with_zoom(subject, trial, peakthresh = 50, time_start = 15, time_stop = 20):
@@ -220,9 +186,9 @@ def plot_method_comparison_with_zoom(subject, trial, peakthresh = 50, time_start
             row.tick_params(labelsize = 14)
             row.spines['right'].set_visible(False)
             row.spines['top'].set_visible(False)
-    ax[0,1].vlines(taps_hmm / 2000., min(trial_force), max(trial_force) * 1.1, color = "red", linewidth = .75, linestyle = ":")
+    ax[0,1].vlines(taps_hmm / 2000., min(trial_force), max(trial_force) * 1.1, color = "red", linewidth = 1, linestyle = ":")
     ax[1,1].vlines(taps_hmm / 2000., min(trial_force), max(trial_force) * 1.1, color = "red", linewidth = 1, linestyle = "--")
-    ax[0,0].vlines(taps_standard / 2000.,min(trial_force), max(trial_force) * 1.1,  color = "red", linewidth = .75, linestyle = ":")
+    ax[0,0].vlines(taps_standard / 2000.,min(trial_force), max(trial_force) * 1.1,  color = "red", linewidth = 1, linestyle = ":")
     ax[1,0].vlines(taps_standard / 2000.,min(trial_force), max(trial_force) * 1.1,  color = "red", linewidth = 1, linestyle = "--")
     ax[1,0].set_xlim(time_start, time_stop)
     ax[1,1].set_xlim(time_start, time_stop)
@@ -311,14 +277,32 @@ def plot_subject_drift(subject, sharey = True):
 ###############################
 
 ## Choose Trials to Highlight
-design_cases = [(61,2),(69,3),(80,2),(161,2),(179,3),(194,3),(250,3),
-                            (258,1),(268,4),(287,5),(307,4),(310,3),(314,3),(314,6),(177,1),
-                            (380,5),(431,1),(431,5), (431,3)]
+design_cases = [
+                # (61,2),
+                # (69,3),
+                # (80,2),
+                # (161,2),
+                # (179,3),
+                # (194,3),
+                # (250,3),
+                # (258,1),
+                # (268,4),
+                # (287,5),
+                # (307,4),
+                (310,3),
+                # (314,3),
+                # (314,6),
+                # (177,1),
+                # (380,5),
+                # (431,1),
+                # (431,5),
+                # (431,3)
+                ]
 
 ## Plot the Examples
 for subject, trial in design_cases:
     fig, ax = plot_experimental_design(subject, trial)
-    fig.savefig(method_plots + "{}_{}.png".format(subject, trial),dpi=300)
+    fig.savefig(method_plots + "{}_{}{}".format(subject, trial, FIGURE_FMT),dpi=300)
     plt.close()
 
 ###############################
@@ -326,15 +310,17 @@ for subject, trial in design_cases:
 ###############################
 
 ## Choose Cases to Highlight
-method_cases = [(110, 5), (76,1), (76,4), (77,1), (80,1), (85,5), (87,1), (87,2), (87,3),
-                    (87,6), (88,4), (95,2), (108,1), (109, 1), (109,6), (110, 5),
-                    (111, 1), (131, 1), (131,4), (131, 6), (134,1), (135, 1),
-                    (163, 6), ]
+method_cases = [
+                (76,1,28,32),
+                (76,4,3.5,8),
+                (110,5,12,16),
+                (163,6,7,11)
+                ]
 
 ## Plot the cases
-for subject, trial in method_cases:
-    fig, ax = plot_method_comparison_with_zoom(subject, trial, peakthresh = 70, time_start = 5, time_stop = 9)
-    fig.savefig(method_plots + "comparison_{}_{}.png".format(subject, trial), dpi = 300)
+for subject, trial, start, stop in method_cases:
+    fig, ax = plot_method_comparison_with_zoom(subject, trial, peakthresh = 70, time_start = start, time_stop = stop)
+    fig.savefig(method_plots + "comparison_{}_{}{}".format(subject, trial, FIGURE_FMT), dpi = 300)
     plt.close()
 
 ###############################
@@ -342,84 +328,16 @@ for subject, trial in method_cases:
 ###############################
 
 ## Choose Examples to Highlight
-within_subject_examples = [56, 88, 130, 161,177, 225, 249, 380, 382]
+within_subject_examples = [
+                           56,
+                           88,
+                           177,
+                           225,
+                           380,
+                           ]
 
 ## Create Plots
 for subject in within_subject_examples:
     fig, ax = plot_subject_drift(subject)
-    fig.savefig(method_plots + "drift_{}.png".format(subject), dpi = 300)
+    fig.savefig(method_plots + "drift_{}{}".format(subject, FIGURE_FMT), dpi = 300)
     plt.close()
-
-# ###############################
-# ### Find good ITI examples
-# ###############################
-#
-# ## Combined Plot for Good Examples
-# tuple_sets = [[(88,3), (88,2) ,(88,1)],
-#                 [(194,3), (194,1) ,(194,2)],
-#                 [(177,5), (177,1) ,(177,6) ],
-#                 [(265,4), (265,3) ,(265,2) ],
-#                 [(307,4), (307,3) ,(307,2) ],
-#                 [(370,6), (370,5) ,(370,4) ],
-#                 [(380,3), (380,4) ,(380,5) ],
-#                 [(431,5), (431,3) ,(431,1) ],
-#                 [(81,5),(81,4),(81,6)],
-#                 [(119,5),(119,6),(119,4)],
-#                 [(400,6),(400,5),(400,4)],
-#                 [(131,5),(131,6),(131,4)],
-# ]
-# for ts in tuple_sets:
-#     sub = ts[0][0]
-#     fig, ax = plot_drift_examples(ts, sharey = True)
-#     fig.savefig("./plots/methodology/consolidated_drift_{}.png", dpi=300.format(sub))
-#     plt.close()
-#
-# ###############################
-# ### Example
-# ###############################
-#
-# ## Trial Methods
-# special_methods_cases = [(61,2),(69,3),(80,2),(161,2),(179,3),(194,3),(250,3),
-#                             (258,1),(268,4),(287,5),(307,4),(310,3),(314,3),(314,6),(177,1),
-#                             (380,5),(431,1),(431,5), (431,3)]
-# for subject, trial in special_methods_cases:
-#     fig, ax = plot_trial_methods(subject, trial)
-#     fig.savefig(method_plots + "{}_{}.png", dpi=300.format(subject, trial))
-#     plt.close()
-#
-# ## Peak estimated_locations
-# special_est_cases = [(55,4,4, "lower right"),
-#                     (60,3,4, "lower right"),
-#                     (60,5,4, "lower right"),
-#                     (91,6,3, "upper right"),
-#                     (118,3,3, "upper right"),
-#                     (163,6,3, "upper left"),
-#                     (172,2,3, "upper left")]
-# for subject, trial, n_taps, loc in special_est_cases:
-#     fig, ax = plot_tap_detection(subject, trial, n_taps = n_taps, legend_loc = loc)
-#     fig.savefig(method_plots + "detection_{}_{}.png", dpi=300.format(subject, trial))
-#     plt.close()
-#
-#
-# ###############################
-# ### Messy Data
-# ###############################
-#
-# ## Peak estimated_locations
-# for subject in range(161, 220):
-#     for trial in range(1,7):
-#         print(subject,trial)
-#         try:
-#             fig, ax = plot_tap_detection(subject, trial, n_taps = 8, legend_loc = "upper left")
-#             plt.show()
-#         except:
-#             continue
-#
-# """
-# 108
-# 115
-# 118
-# 131
-# 141
-# 142**
-# """
