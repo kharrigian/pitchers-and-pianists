@@ -150,10 +150,10 @@ class ExponentialFit:
 ### Global Variables
 ###############
 
-# CV Variables
-cv_sync_metrics = ["met_cv_last5"]
-cv_cont_metrics = ["nomet_cv_last5"]
-cv_metrics = cv_sync_metrics + cv_cont_metrics
+# qvc Variables
+qvc_sync_metrics = ["met_qvc_last5"]
+qvc_cont_metrics = ["nomet_qvc_last5"]
+qvc_metrics = qvc_sync_metrics + qvc_cont_metrics
 
 # Error Variables
 error_sync_metrics = ["met_sync_error_last5", "met_sync_error_last5_rel"]
@@ -179,7 +179,7 @@ primary_variables = ["age","gender","trial","speed_occurrence","trial_speed","mu
 results = pd.read_csv("./data/processed_results.csv")
 
 # Drop Rows with Null Primary Metrics
-results = results.loc[results[cv_metrics + error_metrics + drift_metrics + primary_variables].isnull().sum(axis = 1) == 0]
+results = results.loc[results[qvc_metrics + error_metrics + drift_metrics + primary_variables].isnull().sum(axis = 1) == 0]
 
 # Drop Subjects without 6 Trials
 results = results.loc[results.subject.isin(set(results.subject.value_counts().loc[results.subject.value_counts() == 6].index.values))].copy()
@@ -232,7 +232,7 @@ drift_metrics = drift_metrics + ["abs_{}".format(met) for met in drift_metrics]
 ###############
 
 ## Average Metrics Across Both Trials for a Given Trial Speed
-metrics_to_average = error_metrics + cv_metrics + drift_metrics
+metrics_to_average = error_metrics + qvc_metrics + drift_metrics
 mean_results = pd.pivot_table(index = ["subject","trial_speed"],
                               values = metrics_to_average,
                               aggfunc=np.mean,
@@ -279,6 +279,7 @@ ax.spines['top'].set_visible(False)
 ax.tick_params(labelsize=16)
 fig.tight_layout()
 plt.savefig(stats_plots + "preferred_period" + FIGURE_FMT)
+plt.savefig(stats_plots + "preferred_period" + ".png")
 plt.close()
 
 ## No Correlation between age and preferred period
@@ -292,6 +293,7 @@ ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 fig.tight_layout()
 plt.savefig(stats_plots + "age_preferred_period" + FIGURE_FMT)
+plt.savefig(stats_plots + "age_preferred_period" + ".png")
 plt.close()
 
 ###############
@@ -325,6 +327,7 @@ lim = ax.set_ylim(0, max_count+5)
 ax.tick_params(labelsize = 16)
 fig.tight_layout()
 fig.savefig(stats_plots + "demographics" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "demographics" + ".png", dpi=300)
 plt.close()
 
 ## Age + Gender + Musical Experience
@@ -349,6 +352,7 @@ ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 fig.tight_layout()
 fig.savefig(stats_plots + "demographics_musicalexperience" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "demographics_musicalexperience" + ".png", dpi=300)
 plt.close()
 
 ###############
@@ -376,6 +380,7 @@ for a in ax:
 fig.tight_layout()
 fig.subplots_adjust(wspace = .4)
 plt.savefig(stats_plots + "musical_experience" + FIGURE_FMT)
+plt.savefig(stats_plots + "musical_experience" + ".png")
 plt.close()
 
 ## Musical Experience with Age/Gender
@@ -416,6 +421,7 @@ ax[0].set_xlabel("Gender", fontsize = 18, fontweight = "bold")
 ax[1].set_xlabel("Age (yrs.)", fontsize = 18, fontweight = "bold")
 fig.tight_layout()
 plt.savefig(stats_plots + "musical_experience_demographics" + FIGURE_FMT)
+plt.savefig(stats_plots + "musical_experience_demographics" + ".png")
 plt.close()
 
 ###############
@@ -425,8 +431,8 @@ plt.close()
 ## Choose Metrics
 sync_error = "abs_met_sync_error_last5_rel"
 cont_error = "abs_nomet_sync_error_last5_rel"
-sync_cv_metric = "met_cv_last5"
-cont_cv_metric = "nomet_cv_last5"
+sync_qvc_metric = "met_qvc_last5"
+cont_qvc_metric = "nomet_qvc_last5"
 drift_metric = "nomet_drift_rel"
 
 ## Separate Columns
@@ -441,14 +447,14 @@ standard_cols = ["subject",
                  "sport_experience_yrs",
                  "preferred_period",
                  "healthy"]
-met_cols = [sync_error, sync_cv_metric]
-nomet_cols = [cont_error, cont_cv_metric, drift_metric]
+met_cols = [sync_error, sync_qvc_metric]
+nomet_cols = [cont_error, cont_qvc_metric, drift_metric]
 
 ## Separate DataFrames
 met_df = mean_results[standard_cols + met_cols].rename(columns = {sync_error:"error",
-                                                                  sync_cv_metric:"cv"}).copy()
+                                                                  sync_qvc_metric:"qvc"}).copy()
 nomet_df = mean_results[standard_cols + nomet_cols].rename(columns = {cont_error:"error",
-                                                                      cont_cv_metric:"cv",
+                                                                      cont_qvc_metric:"qvc",
                                                                       drift_metric:"drift"}).copy()
 
 ## Add Condition Columns
@@ -456,7 +462,7 @@ met_df["condition"] = "paced"
 nomet_df["condition"] = "unpaced"
 
 ## Concatenate DataFrames
-merged_results_df = pd.concat([met_df, nomet_df], sort=True).reset_index(drop=True)
+merged_results_df = pd.concat([met_df, nomet_df]).reset_index(drop=True)
 
 ## Dump Merged Results for Inter-task Analysis
 merged_results_df.to_csv("./data/merged_processed_results.csv",index=False)
@@ -512,6 +518,7 @@ fig.tight_layout()
 fig.subplots_adjust(wspace = .1, bottom = .13)
 fig.text(0.55, 0.02, 'Metronome Condition', ha='center', fontsize = 14, fontweight = "bold")
 fig.savefig(stats_plots + "error_musical_experience" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "error_musical_experience" + ".png", dpi=300)
 plt.close()
 
 ## Plot Age
@@ -540,6 +547,7 @@ ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
 ax.legend(loc = "upper right", frameon = True, facecolor = "white", fontsize = 16)
 fig.tight_layout()
 fig.savefig(stats_plots + "error_age" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "error_age" + ".png", dpi=300)
 plt.close()
 
 
@@ -592,6 +600,7 @@ ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
 ax.set_ylim(-1.2,3.2)
 fig.tight_layout()
 fig.savefig(stats_plots + "drift_trialspeed_bar" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "drift_trialspeed_bar" + ".png", dpi=300)
 plt.close()
 
 ## Standard Bar of Drift vs. Trial Speed, broken down by musicianship
@@ -619,6 +628,7 @@ ax.spines['top'].set_visible(False)
 ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
 fig.tight_layout()
 fig.savefig(stats_plots + "drift_trialspeed_musicalexperience_bar" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "drift_trialspeed_musicalexperience_bar" + ".png", dpi=300)
 plt.close()
 
 ## Standard Bar of Drift vs. Trial Speed, broken down by gender
@@ -646,6 +656,7 @@ ax.spines['top'].set_visible(False)
 ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
 fig.tight_layout()
 fig.savefig(stats_plots + "drift_trialspeed_gender_bar" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "drift_trialspeed_gender_bar" + ".png", dpi=300)
 plt.close()
 
 ## Combined Standard Drift + Age Gender
@@ -677,6 +688,7 @@ for i in range(2):
 ax[0].set_ylabel("Drift (ITI Percent Change)", fontsize = 16, fontweight = "bold")
 fig.tight_layout()
 fig.savefig(stats_plots + "combined_drift_standard_and_gender" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "combined_drift_standard_and_gender" + ".png", dpi=300)
 plt.close()
 
 ## Within-Subject
@@ -728,6 +740,7 @@ ax.set_ylabel("Drift Difference from\nPreferred Period Trials", ha = "center", v
 ax.tick_params(labelsize = 14)
 fig.tight_layout()
 fig.savefig(stats_plots + "within_subject_drift" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "within_subject_drift" + ".png", dpi=300)
 plt.close()
 
 ################################################################################
@@ -735,32 +748,32 @@ plt.close()
 ################################################################################
 
 ## Fit Mixed LM Model
-cv_model_form = "cv ~ C(gender) + age + preferred_period + trial_speed + C(musical_experience) + C(condition)"
-cv_model = smf.mixedlm(cv_model_form, data = merged_results_df, groups = merged_results_df["subject"]).fit(reml=True)
-cv_model_summary, cv_wald = summarize_lm_model(cv_model)
+qvc_model_form = "qvc ~ C(gender) + age + preferred_period + trial_speed + C(musical_experience) + C(condition)"
+qvc_model = smf.mixedlm(qvc_model_form, data = merged_results_df, groups = merged_results_df["subject"]).fit(reml=True)
+qvc_model_summary, qvc_wald = summarize_lm_model(qvc_model)
 
-print("Variability Effects:"); print_significant(cv_model, cv_wald)
+print("Variability Effects:"); print_significant(qvc_model, qvc_wald)
 
 """
 Variability Effects:
-- trial_speed chi^2(2, N = 303) = 28.25395, p = 0.00000
-- C(musical_experience) chi^2(1, N = 303) = 14.03075, p = 0.00018
-- C(condition) chi^2(1, N = 303) = 47.48795, p = 0.00000
-- age chi^2(1, N = 303) = 63.15085, p = 0.00000
-- preferred_period chi^2(1, N = 303) = 10.08424, p = 0.00150
+- trial_speed chi^2(2, N = 303) = 9.79007, p = 0.00748
+- C(musical_experience) chi^2(1, N = 303) = 15.94529, p = 0.00007
+- C(condition) chi^2(1, N = 303) = 31.87571, p = 0.00000
+- age chi^2(1, N = 303) = 68.27309, p = 0.00000
+- preferred_period chi^2(1, N = 303) = 9.65240, p = 0.00189
 """
 
 ## Age Effects
-cv_aggs = {"cv": lambda values: tuple(bootstrap_ci(values, sample_percent = 30))}
-age_bin_var_sem = merged_results_df.groupby(["condition","age_bin"]).agg({"cv":std_error}).reset_index()
-age_bin_var_ci = merged_results_df.groupby(["condition","age_bin"]).agg(cv_aggs).reset_index()
-for i in range(3): age_bin_var_ci[i] = age_bin_var_ci["cv"].map(lambda j: j[i])
+qvc_aggs = {"qvc": lambda values: tuple(bootstrap_ci(values, sample_percent = 30))}
+age_bin_var_sem = merged_results_df.groupby(["condition","age_bin"]).agg({"qvc":std_error}).reset_index()
+age_bin_var_ci = merged_results_df.groupby(["condition","age_bin"]).agg(qvc_aggs).reset_index()
+for i in range(3): age_bin_var_ci[i] = age_bin_var_ci["qvc"].map(lambda j: j[i])
 fig, ax = plt.subplots(1, 1, figsize = standard_fig)
 for c, cond in enumerate(["paced","unpaced"]):
     avg_data_to_plot = age_bin_var_sem.loc[age_bin_var_sem.condition == cond]
     ci_data_to_plot = age_bin_var_ci.loc[age_bin_var_ci.condition == cond]
     ax.errorbar(age_bin_points, ci_data_to_plot[1].values,
-                        yerr = avg_data_to_plot["cv"].values,
+                        yerr = avg_data_to_plot["qvc"].values,
                         color = "blue" if c == 0 else "green", linewidth = 2, alpha = .5)
     ax.fill_between([age_bin_points[0]-1] + age_bin_points[1:-1] + [age_bin_points[-1]+1], ci_data_to_plot[0].values, ci_data_to_plot[2].values,
                     color = "blue" if c == 0 else "green", alpha = .2,
@@ -770,22 +783,23 @@ ax.set_xticks(age_bin_points); ax.set_xticklabels(age_bin_strings)
 ax.tick_params(labelsize = 14)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
-ax.set_ylabel("Coefficient of Variation", fontsize = 16, labelpad = 10, fontweight = "bold")
+ax.set_ylabel("Quartile Variation Coefficient", fontsize = 16, labelpad = 10, fontweight = "bold")
 ax.legend(loc = "upper right", frameon = True, facecolor = "white", fontsize = 14)
 fig.tight_layout()
 fig.savefig(stats_plots + "variability_age" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "variability_age" + ".png", dpi=300)
 plt.close()
 
 
 ## Trial Speed
-speed_var_avg = merged_results_df.groupby(["condition","trial_speed"]).agg({"cv":[np.mean, std_error]}).reset_index()
+speed_var_avg = merged_results_df.groupby(["condition","trial_speed"]).agg({"qvc":[np.mean, std_error]}).reset_index()
 bar_width = .95/2
 fig, ax = plt.subplots(figsize = standard_fig)
 for c, cond in enumerate(["paced","unpaced"]):
     for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
         data_to_plot = speed_var_avg.loc[(speed_var_avg.condition==cond)&(speed_var_avg.trial_speed==trial_speed)]
-        ax.bar(0.025 + t + bar_width*c, data_to_plot["cv"]["mean"],
-                yerr = data_to_plot["cv"]["<lambda>"],
+        ax.bar(0.025 + t + bar_width*c, data_to_plot["qvc"]["mean"],
+                yerr = data_to_plot["qvc"]["<lambda>"],
                 align = "edge", width = bar_width, color = "blue" if c == 0 else "green",
                 edgecolor = "navy" if c == 0 else "darkgreen",
                 label = {0:"Synchronization",1:"Continuation"}[c] if t == 0 else "",
@@ -796,22 +810,23 @@ ax.set_xlabel("Metronome Condition", fontsize = 16, labelpad = 15, fontweight = 
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 ax.tick_params(labelsize = 14)
-ax.set_ylabel("Coefficient of Variation", fontsize = 16, labelpad = 15, fontweight = "bold")
+ax.set_ylabel("Quartile Variation Coefficient", fontsize = 16, labelpad = 15, fontweight = "bold")
 ax.legend(loc = "upper left", frameon = True, facecolor = "white", fontsize = 16)
 ax.set_ylim(top = 0.07)
 fig.tight_layout()
 fig.savefig(stats_plots + "variability_trialspeed" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "variability_trialspeed" + ".png", dpi=300)
 plt.close()
 
 ## Musical Experience + Variability
-cv_music_avg = merged_results_df.groupby(["condition","trial_speed","musical_experience"]).agg({"cv":[np.mean, std_error]}).reset_index()
+qvc_music_avg = merged_results_df.groupby(["condition","trial_speed","musical_experience"]).agg({"qvc":[np.mean, std_error]}).reset_index()
 fig, ax = plt.subplots(1, 2, figsize = standard_fig, sharey = True, sharex = True)
 for c, cond in enumerate(["paced","unpaced"]):
     for me in range(2):
-        data_to_plot = cv_music_avg.set_index(["condition","musical_experience"]).loc[cond, me]
+        data_to_plot = qvc_music_avg.set_index(["condition","musical_experience"]).loc[cond, me]
         data_to_plot = data_to_plot.set_index("trial_speed").loc[["SlowedDown","NoChange","SpedUp"]]
-        ax[c].bar(0.025 + np.arange(3) + .95/2*me, data_to_plot["cv"]["mean"].values,
-                    yerr = data_to_plot["cv"]["<lambda>"].values,
+        ax[c].bar(0.025 + np.arange(3) + .95/2*me, data_to_plot["qvc"]["mean"].values,
+                    yerr = data_to_plot["qvc"]["<lambda>"].values,
                     color = "slategray", edgecolor = "black",
                     width = .95/2, alpha = .4 if me == 0 else .8, align = "edge",
                     label = "w/ M.E." if me == 1 else "w/o M.E.")
@@ -822,12 +837,13 @@ for c, cond in enumerate(["paced","unpaced"]):
         ax[c].set_xticklabels(["20% Slower","Preferred","20% Faster"])
 ax[0].set_title("Synchronization", fontsize = 16, fontweight = "bold")
 ax[1].set_title("Continuation", fontsize = 16, fontweight = "bold")
-ax[0].set_ylabel("Coefficient of\nVariation", fontsize = 16, labelpad = 15, fontweight = "bold")
+ax[0].set_ylabel("Quartile Variation\nCoefficient", fontsize = 16, labelpad = 15, fontweight = "bold")
 ax[1].legend(loc = "lower right", fontsize = 16, frameon = True, facecolor = "white", framealpha = 1)
 fig.text(0.55, 0.02, 'Metronome Condition', ha='center', fontsize = 14, fontweight = "bold")
 fig.tight_layout()
 fig.subplots_adjust(top = .9, bottom = .13)
 fig.savefig(stats_plots + "variability_musicalexperience_trialspeed" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "variability_musicalexperience_trialspeed" + ".png", dpi=300)
 plt.close()
 
 ################################################################################

@@ -303,6 +303,7 @@ design_cases = [
 for subject, trial in design_cases:
     fig, ax = plot_experimental_design(subject, trial)
     fig.savefig(method_plots + "{}_{}{}".format(subject, trial, FIGURE_FMT),dpi=300)
+    fig.savefig(method_plots + "{}_{}{}".format(subject, trial, ".png"),dpi=300)
     plt.close()
 
 ###############################
@@ -321,6 +322,7 @@ method_cases = [
 for subject, trial, start, stop in method_cases:
     fig, ax = plot_method_comparison_with_zoom(subject, trial, peakthresh = 70, time_start = start, time_stop = stop)
     fig.savefig(method_plots + "comparison_{}_{}{}".format(subject, trial, FIGURE_FMT), dpi = 300)
+    fig.savefig(method_plots + "comparison_{}_{}{}".format(subject, trial, ".png"), dpi = 300)
     plt.close()
 
 ###############################
@@ -340,4 +342,5 @@ within_subject_examples = [
 for subject in within_subject_examples:
     fig, ax = plot_subject_drift(subject)
     fig.savefig(method_plots + "drift_{}{}".format(subject, FIGURE_FMT), dpi = 300)
+    fig.savefig(method_plots + "drift_{}{}".format(subject, ".png"), dpi = 300)
     plt.close()

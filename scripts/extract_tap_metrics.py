@@ -19,6 +19,24 @@ import warnings
 warnings.simplefilter("ignore")
 
 ###############################
+### Helpers
+###############################
+
+def quantile_variation_coefficient(x):
+    """
+    Compute the Quartile variation coeffient of x
+
+    Args:
+        x (array): Array of numeric values
+
+    Returns:
+        qvc (float): Quartile variation coefficient
+    """
+    q1, q3 = np.nanpercentile(x, [25, 75])
+    qvc = (q3 - q1) / (q3 + q1)
+    return qvc
+
+###############################
 ### Load Data
 ###############################
 
@@ -114,31 +132,28 @@ for sub, subject_file in enumerate(tapping_filenames):
 
         # Isolate ITIs within each Sections
         met_itis_last5 = met_itis[met_mask_nontransient][-8:, 2]
-        # nomet_itis_first5 = nomet_itis[nomet_mask_nontransient][:5, 2]
         nomet_itis_last5 = nomet_itis[nomet_mask_nontransient][-8:, 2]
 
         # Absolute Synchronization Error (median - trial_period)
         met_last_5_sync_error = np.median(met_itis_last5) - expected_iti
-        # nomet_first_5_sync_error = np.median(nomet_itis_first5) - expected_iti
         nomet_last_5_sync_error = np.median(nomet_itis_last5) - expected_iti
 
         # Relative Synchronization Error (median - trial period) / trial_period
         met_last_5_sync_error_rel = (max(met_last_5_sync_error, 1./sample_rate) if met_last_5_sync_error >= 0 else met_last_5_sync_error) / expected_iti * 100
-        # nomet_first_5_sync_error_rel = (max(nomet_first_5_sync_error, 1./sample_rate) if nomet_first_5_sync_error >= 0 else nomet_first_5_sync_error) / expected_iti * 100
         nomet_last_5_sync_error_rel = (max(nomet_last_5_sync_error, 1./sample_rate) if nomet_last_5_sync_error >= 0 else nomet_last_5_sync_error) / expected_iti * 100
 
         # Coefficient of Variation (std/mean)
         met_last_5_cv = np.std(met_itis_last5) / np.mean(met_itis_last5)
-        # nomet_first_5_cv = np.std(nomet_itis_first5) / np.mean(nomet_itis_first5)
         nomet_last_5_cv = np.std(nomet_itis_last5) / np.mean(nomet_itis_last5)
+
+        # Quantile Variation Coefficient
+        met_last_5_qvc = quantile_variation_coefficient(met_itis_last5)
+        nomet_last_5_qvc = quantile_variation_coefficient(nomet_itis_last5)
 
         # Drift (pct change of first 5 median to last 5 median)
         met_last_5_median = np.median(met_itis_last5)
-        # nomet_first_5_median = np.median(nomet_itis_first5)
         nomet_last_5_median = np.median(nomet_itis_last5)
-        # nomet_drift = nomet_last_5_median - nomet_first_5_median
         nomet_drift = nomet_last_5_median - met_last_5_median
-        # nomet_drift_rel = (max(nomet_drift, 1./sample_rate) if nomet_drift >= 0 else nomet_drift) / nomet_first_5_median * 100
         nomet_drift_rel = (max(nomet_drift, 1./sample_rate) if nomet_drift >= 0 else nomet_drift) / met_last_5_median * 100
 
 		# Drift (Regression Coefficient)
@@ -159,16 +174,16 @@ for sub, subject_file in enumerate(tapping_filenames):
                         ### Trial Results ###
                         # Synchronization Error
                         "met_sync_error_last5":met_last_5_sync_error * 1000,
-                        # "nomet_sync_error_first5":nomet_first_5_sync_error * 1000,
                         "nomet_sync_error_last5":nomet_last_5_sync_error * 1000,
                         # Relative Synchronization Error
                         "met_sync_error_last5_rel":met_last_5_sync_error_rel,
-                        # "nomet_sync_error_first5_rel":nomet_first_5_sync_error_rel,
                         "nomet_sync_error_last5_rel":nomet_last_5_sync_error_rel,
                         # Coefficient of Variation
                         "met_cv_last5":met_last_5_cv,
-                        # "nomet_cv_first5":nomet_first_5_cv,
                         "nomet_cv_last5":nomet_last_5_cv,
+                        # Quantile Variation Coefficient
+                        "met_qvc_last5":met_last_5_qvc,
+                        "nomet_qvc_last5":nomet_last_5_qvc,
                         # Drift
                         "nomet_drift":nomet_drift * 1000,
                         "nomet_drift_rel":nomet_drift_rel,

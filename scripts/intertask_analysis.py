@@ -20,6 +20,7 @@ import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
 from scipy.stats import spearmanr, pearsonr
+import seaborn as sns
 
 # Statistical Modeling/Curve Fitting
 import statsmodels.formula.api as smf
@@ -31,10 +32,10 @@ from scipy.optimize import curve_fit
 ### Tapping Dependent Variables
 ###############
 
-# CV Variables
-cv_sync_metrics = ["met_cv_last5"]
-cv_cont_metrics = ["nomet_cv_last5"]
-cv_metrics = cv_sync_metrics + cv_cont_metrics
+# qvc Variables
+qvc_sync_metrics = ["met_qvc_last5"]
+qvc_cont_metrics = ["nomet_qvc_last5"]
+qvc_metrics = qvc_sync_metrics + qvc_cont_metrics
 
 # Error Variables
 error_sync_metrics = ["met_sync_error_last5", "met_sync_error_last5_rel"]
@@ -109,7 +110,7 @@ for t, trs in enumerate(blocks):
     trs_agg.rename(columns = {0:"mean_ITI"}, inplace=True)
     itis_df.append(trs_agg)
 itis_df = pd.concat(itis_df)
-itis_df["cv_ITI"] = itis_df["sd_ITI"] / itis_df["mean_ITI"]
+itis_df["qvc_ITI"] = itis_df["sd_ITI"] / itis_df["mean_ITI"]
 
 ## Process Error
 errors_df = []
@@ -126,7 +127,7 @@ for t, trs in enumerate(blocks):
     error_agg.rename(columns = {0:"mean_Error"}, inplace = True)
     errors_df.append(error_agg)
 errors_df = pd.concat(errors_df)
-errors_df["cv_Error"] = errors_df["sd_Error"] / errors_df["mean_Error"]
+errors_df["qvc_Error"] = errors_df["sd_Error"] / errors_df["mean_Error"]
 
 ## Process Timing Error
 timing_errors_df = []
@@ -139,7 +140,7 @@ for t, trs in enumerate(blocks):
     timing_error_agg.rename(columns = {0:"mean_timingError"}, inplace = True)
     timing_errors_df.append(timing_error_agg)
 timing_errors_df = pd.concat(timing_errors_df)
-timing_errors_df["cv_timingError"] = timing_errors_df["sd_timingError"] / timing_errors_df["mean_timingError"]
+timing_errors_df["qvc_timingError"] = timing_errors_df["sd_timingError"] / timing_errors_df["mean_timingError"]
 
 ## Process Timing Window
 timing_window_df = []
@@ -152,7 +153,7 @@ for t, trs in enumerate(blocks):
     timing_window_agg.rename(columns = {0:"mean_timingWindow"}, inplace = True)
     timing_window_df.append(timing_window_agg)
 timing_window_df = pd.concat(timing_window_df)
-timing_window_df["cv_timingWindow"] = timing_window_df["sd_timingWindow"] / timing_window_df["mean_timingWindow"]
+timing_window_df["qvc_timingWindow"] = timing_window_df["sd_timingWindow"] / timing_window_df["mean_timingWindow"]
 
 ## Merge Metrics
 skittles_data_agg = pd.merge(itis_df, errors_df, on = ["Subject", "block"])
@@ -189,7 +190,7 @@ skittles_X = pd.pivot_table(pd.melt(skittles_data_agg.drop(["post_hits"],axis=1)
                                     id_vars=["subject","block"]),
                             index = "subject",
                             columns = ["variable","block"])["value"]
-tapping_Y = pd.pivot_table(pd.melt(processed_tapping_data[["subject","cv","drift","error","trial_speed","condition"]],
+tapping_Y = pd.pivot_table(pd.melt(processed_tapping_data[["subject","qvc","drift","error","trial_speed","condition"]],
                                    id_vars = ["subject","trial_speed","condition"]),
                            index = "subject",
                            columns =["variable","trial_speed","condition"])["value"]
@@ -232,6 +233,7 @@ plt.xticks(rotation = 45, ha = "right", fontsize = 7)
 plt.yticks(fontsize = 7)
 plt.tight_layout()
 plt.savefig("./plots/intertask/full_correlation_matrix" + FIGURE_FMT)
+plt.savefig("./plots/intertask/full_correlation_matrix" + ".png")
 plt.close()
 
 ## Plot Cross Correlations
@@ -249,6 +251,7 @@ plt.xticks(rotation = 45, ha = "right", fontsize = 7)
 plt.yticks(fontsize = 7)
 plt.tight_layout()
 plt.savefig("./plots/intertask/intertask_correlation_matrix" + FIGURE_FMT)
+plt.savefig("./plots/intertask/intertask_correlation_matrix" + ".png")
 plt.close()
 
 ## Prepare to Plot
@@ -272,4 +275,5 @@ for skit, tap in top_correlations:
     ax[1].set_ylabel("{} subject rank".format(tap))
     fig.tight_layout()
     fig.savefig(corr_dir + "{}--{}".format(skit, tap) + FIGURE_FMT)
+    fig.savefig(corr_dir + "{}--{}".format(skit, tap) + ".png")
     plt.close()
