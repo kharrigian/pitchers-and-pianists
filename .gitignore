@@ -8,6 +8,7 @@ data/stage_4_processed.pickle
 data/processed_results.csv
 data/transformed_subset.csv
 data/merged_processed_results.csv
+data/preferred_periods.pickle
 
 # Ignore All Plots
 *.png
