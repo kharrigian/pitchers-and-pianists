@@ -9,6 +9,7 @@ data/processed_results.csv
 data/transformed_subset.csv
 data/merged_processed_results.csv
 data/preferred_periods.pickle
+data/preferred_period_filtering_map.csv
 
 # Ignore All Plots
 *.png
