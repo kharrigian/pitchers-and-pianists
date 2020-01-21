@@ -35,3 +35,4 @@ literature/
 
 # VS Code Workspace
 *workspace*
+.vscode/
