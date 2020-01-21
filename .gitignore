@@ -32,3 +32,6 @@ data/preferred_period_filtering_map.csv
 # Ignore documentation
 documentation/
 literature/
+
+# VS Code Workspace
+*workspace*
