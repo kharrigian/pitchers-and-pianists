@@ -2,6 +2,10 @@
 
 Standalone programs are housed within `scripts/`, with helper functions being relegated to `scripts/libraries/*`.
 
+### Setup
+
+This codebase assumes you are using python 3.6+. Primary dependencies can be found within `requirements.txt`. Nearly all packages can be installed using `pip`, except `peakutils` which can be installed from source from the directions here at https://peakutils.readthedocs.io/en/latest/.
+
 ### Signal Processing
 
 The first task of this project was to identify tap initations in raw digital force signal. This ended up being non-trivial due to substantial external noise in the data. Issues were ultimately mitigated using a 4-stage approach.
