@@ -36,8 +36,6 @@ from matplotlib import rcParams
 standard_fig = (10,5.8)
 plot_dir = "./plots/"
 method_plots = plot_dir + "methodology/"
-rcParams['font.family'] = 'sans-serif'
-rcParams['font.sans-serif'] = ['Helvetica']
 rcParams["errorbar.capsize"] = 5
 FIGURE_FMT = ".pdf"
 

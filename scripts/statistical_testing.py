@@ -396,11 +396,42 @@ plt.savefig(stats_plots + "age_preferred_period" + FIGURE_FMT)
 plt.savefig(stats_plots + "age_preferred_period" + ".png")
 plt.close()
 
-## Categorical Relationship between age and preferred Period
+## Preferred Period Effects
+pp_form = "preferred_period ~ age + C(gender) + C(musical_experience)"
+pp_model = smf.ols(pp_form, subject_deduped).fit()
+pp_stats, pp_sig = summarize_lm_model(pp_model)
+
+## Preferred Period ~ Musical Experience
 pp_ci = lambda vals: tuple(bootstrap_ci(vals, sample_percent = 30, samples = 1000))
+me_pp_avg = subject_deduped.groupby(["musical_experience"]).agg({"preferred_period":[pp_ci,np.mean,np.std,std_error]})["preferred_period"]
+for i in range(3): me_pp_avg[i] = me_pp_avg["<lambda_0>"].map(lambda j: j[i])
+fig, ax = plt.subplots(figsize = standard_fig)
+ax.bar([0, 1],
+       me_pp_avg["mean"].values,
+       yerr = me_pp_avg["std_error"].values,
+       color = "slategray",
+       edgecolor = "black",
+       alpha = .3)
+ax.set_xticks([0,1])
+ax.set_xticklabels(["w/o M.E.","w/ M.E."])
+ax.set_xlabel("Musical Experience",
+              fontsize = 18,
+              fontweight = "bold")
+ax.set_ylabel("Preferred Period",
+              fontsize = 18,
+              fontweight = "bold")
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+ax.tick_params(labelsize = 16)
+fig.tight_layout()
+fig.savefig(stats_plots + "musical_experience_preferred_period" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "musical_experience_preferred_period" + ".png", dpi=300)
+plt.close()
+
+## Categorical Relationship between age and preferred Period
 age_pp_aggs = {"preferred_period":[np.mean, std_error, pp_ci]}
 age_bin_pp_avg = subject_deduped.groupby(["age_bin"]).agg(age_pp_aggs)["preferred_period"]
-for i in range(3): age_bin_pp_avg[i] = age_bin_pp_avg["<lambda>"].map(lambda j: j[i])
+for i in range(3): age_bin_pp_avg[i] = age_bin_pp_avg["<lambda_0>"].map(lambda j: j[i])
 fig, ax = plt.subplots(figsize = standard_fig)
 ax.fill_between([age_bin_points[0]-1] + age_bin_points[1:-1] + [age_bin_points[-1]+1+1],
                 age_bin_pp_avg[0].values,
@@ -1046,8 +1077,8 @@ fig.savefig(stats_plots + "drift_trialspeed_gender_bar" + FIGURE_FMT, dpi=300)
 fig.savefig(stats_plots + "drift_trialspeed_gender_bar" + ".png", dpi=300)
 plt.close()
 
-## Combined Standard Drift + Gender
-fig, ax = plt.subplots(1, 2, figsize = standard_fig, sharex = False, sharey = True)
+## Combined Standard Drift + Gender + Musical Experience
+fig, ax = plt.subplots(1, 3, figsize = standard_fig, sharex = False, sharey = True)
 for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
     data_to_plot = drift_by_trial_speed_avg.loc[trial_speed]
     ax[0].bar(t,
@@ -1070,20 +1101,38 @@ for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
                   width = bar_width,
                   align = "edge")
 ax[1].set_xticks(np.arange(3)+.5)
+for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
+    for m in [0, 1]:
+        data_to_plot = drift_by_trial_speed_me_avg.loc[trial_speed, m]
+        ax[2].bar(0.025 + t + m*bar_width,
+                  data_to_plot["drift"]["mean"],
+                  yerr = data_to_plot["drift"]["std_error"],
+                  color = "slategray",
+                  alpha = .4 if m == 0 else .8,
+                  edgecolor = "black",
+                  label = {0:"w/o M.E.",1:"w/ M.E."}[m] if t == 0 else "",
+                  width = bar_width,
+                  align = "edge")
+ax[2].set_xticks(np.arange(3)+.5)
 ax[1].legend(loc = "upper left",
-             fontsize = 16,
+             fontsize = 14,
              frameon = True,
              facecolor = "white")
-for i in range(2):
+ax[2].legend(loc = "upper left",
+             fontsize = 14,
+             frameon = True,
+             facecolor = "white")
+for i in range(3):
     ax[i].axhline(0,
                   color = "black",
                   linewidth = 1)
-    ax[i].set_xticklabels(["20% Slower","Preferred","20% Faster"])
+    ax[i].set_xticklabels(["20%\nSlower","Preferred","20%\nFaster"])
     ax[i].tick_params(labelsize = 14)
-    ax[i].set_xlabel("Metronome Condition",
-                     fontsize = 16,
-                     labelpad = 15,
-                     fontweight = "bold")
+    if i == 1:
+        ax[i].set_xlabel("Metronome Condition",
+                         fontsize = 16,
+                         labelpad = 15,
+                         fontweight = "bold")
     ax[i].spines['right'].set_visible(False)
     ax[i].spines['top'].set_visible(False)
     ax[i].yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
@@ -1091,8 +1140,9 @@ ax[0].set_ylabel("Drift (ITI Percent Change)",
                  fontsize = 16,
                  fontweight = "bold")
 fig.tight_layout()
-fig.savefig(stats_plots + "combined_drift_standard_and_gender" + FIGURE_FMT, dpi=300)
-fig.savefig(stats_plots + "combined_drift_standard_and_gender" + ".png", dpi=300)
+fig.subplots_adjust(wspace = 0.1)
+fig.savefig(stats_plots + "combined_drift_standard_and_gender_and_musicalexperience" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "combined_drift_standard_and_gender_and_musicalexperience" + ".png", dpi=300)
 plt.close()
 
 ## Within-Subject

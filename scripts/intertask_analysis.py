@@ -4,6 +4,7 @@ Exploration of the correlation between Skittles and Tapping performance
 """
 
 FIGURE_FMT = ".pdf"
+standard_fig = (10,5.8)
 
 ##############################
 ### Imports
@@ -21,9 +22,11 @@ import scipy.io as sio
 import matplotlib.pyplot as plt
 from scipy.stats import spearmanr, pearsonr
 import seaborn as sns
+from tqdm import tqdm
 
 # Statistical Modeling/Curve Fitting
 import statsmodels.formula.api as smf
+from statsmodels.stats import anova
 from statsmodels.multivariate import cancorr, manova
 from scipy import stats
 from scipy.optimize import curve_fit
@@ -205,9 +208,9 @@ skittles_data_agg = skittles_data_agg.drop([c for c in skittles_data_agg.columns
 ##############################
 
 ## Subject Overlap
-tapping_subjects = set(processed_tapping_data.subject) # 303 subjects
+tapping_subjects = set(processed_tapping_data.subject) # 282 subjects
 skittles_subjects = set(skittles_data_agg.subject) # 385 subjects
-tapping_and_skittles_subjects = tapping_subjects & skittles_subjects # 256 subjects
+tapping_and_skittles_subjects = tapping_subjects & skittles_subjects # 239 subjects
 
 ## Filter Down to Overlap
 processed_tapping_data = processed_tapping_data.loc[processed_tapping_data.subject.isin(tapping_and_skittles_subjects)]
@@ -216,17 +219,20 @@ skittles_data_agg = skittles_data_agg.loc[skittles_data_agg.subject.isin(tapping
 skittles_data_agg = skittles_data_agg.reset_index(drop = True).copy()
 
 ## Age/Gender/Musical Experience Distribution
-age_gender_dist = processed_tapping_data.groupby(["age_bin","gender","musical_experience"]).size()
+age_gender_dist = processed_tapping_data.drop_duplicates("subject").groupby(["age_bin","gender","musical_experience"]).size()
 
 ##############################
-### Correlation Analysis
+### Data Formatting and Reshaping
 ##############################
+
+## Filter Down Skittles to 4th Block
+skittles_data_agg = skittles_data_agg.loc[skittles_data_agg.block == 4].reset_index(drop=True).copy()
 
 ## Summary Matrices
-skittles_X = pd.pivot_table(pd.melt(skittles_data_agg.drop(["post_hits"],axis=1),
-                                    id_vars=["subject","block"]),
+skittles_X = pd.pivot_table(pd.melt(skittles_data_agg.drop(["block","post_hits"],axis=1),
+                                    id_vars=["subject"]),
                             index = "subject",
-                            columns = ["variable","block"])["value"]
+                            columns = ["variable"])["value"]
 tapping_Y = pd.pivot_table(pd.melt(processed_tapping_data[["subject","qvc","drift","error","trial_speed","condition"]],
                                    id_vars = ["subject","trial_speed","condition"]),
                            index = "subject",
@@ -238,7 +244,7 @@ skittles_X = skittles_X.drop(X_to_drop, axis=1)
 
 ## Unify Column Names
 tapping_Y.columns = ["-".join(list(map(str, c))) for c in tapping_Y.columns.tolist()]
-skittles_X.columns = ["-".join(list(map(str,c))) for c in skittles_X.columns.tolist()]
+# skittles_X.columns = ["-".join(list(map(str,c))) for c in skittles_X.columns.tolist()]
 
 tapping_Y = pd.merge(tapping_Y,
                      processed_tapping_data.set_index("subject")[["preferred_period"]].drop_duplicates(),
@@ -250,6 +256,10 @@ data_merged = pd.merge(skittles_X,
                        tapping_Y,
                        left_index = True,
                        right_index = True)
+
+##############################
+### Correlation Analysis
+##############################
 
 ## Compute Correlations
 corr = data_merged.corr(method = "spearman")
@@ -286,7 +296,7 @@ sns.heatmap(corr.loc[tapping_Y.columns, skittles_X.columns],
             ax = ax,
             annot = corr.loc[tapping_Y.columns, skittles_X.columns].values,
             fmt = ".2f",
-            annot_kws={"size": 6})
+            annot_kws={"size": 8})
 plt.xticks(rotation = 45, ha = "right", fontsize = 7)
 plt.yticks(fontsize = 7)
 plt.tight_layout()
@@ -304,7 +314,9 @@ else:
 
 ## Plot Top Correlations
 n_top = 20
-top_correlations = corr.loc[tapping_Y.columns, skittles_X.columns].unstack().map(np.abs).reset_index().sort_values(0,ascending = False)[["level_0","level_1"]].values[:n_top]
+tapping_mets = tapping_Y.drop(["preferred_period"],axis=1).columns.tolist()
+skittles_mets = ["mean_timingError","mean_timingWindow", "qvc_ITI"]
+top_correlations = corr.loc[tapping_mets, skittles_mets].unstack().map(np.abs).reset_index().sort_values(0,ascending = False)[["level_0","level_1"]].values[:n_top]
 for skit, tap in top_correlations:
     data_to_plot = data_merged[[skit, tap]].dropna()
     fig, ax = plt.subplots(1, 2, figsize = (12, 8))
@@ -320,3 +332,137 @@ for skit, tap in top_correlations:
     fig.savefig(corr_dir + "{}--{}".format(skit, tap) + FIGURE_FMT)
     fig.savefig(corr_dir + "{}--{}".format(skit, tap) + ".png")
     plt.close()
+
+##############################
+### Figure Visuals
+##############################
+
+## Merge in Subject Metadata
+data_merged_ols = pd.merge(data_merged,
+                           processed_tapping_data.drop_duplicates("subject").set_index("subject")[
+                               ["age",
+                                "age_bin",
+                                "gender",
+                                "healthy",
+                                "musical_experience",
+                                "musical_experience_yrs",
+                                "sport_experience",
+                                "sport_experience_yrs"]
+                           ],
+                           left_index = True,
+                           right_index = True)
+data_merged_ols.rename(columns = dict((col, col.replace("-","_")) for col in data_merged_ols.columns),
+                       inplace = True)
+
+## Plotting Function
+def plot_comparison(tapping_met = "qvc",
+                    tap_met_name = "$QVC_{ITI}$",
+                    segment = "unpaced",
+                    plot_rank = True):
+    """
+    Args:
+        tapping_met (str): Which tap metric to plot (qvc, error, drift)
+        tap_met_name (str): Name of the tap metric to be included in the plot title
+        segment (str): "unpaced" or "paced"
+        plot_rank (bool): If True, plot the rank order of the metrics instead of raw values
+    
+    Returns:
+        fig, ax (matplotlib objects
+    """
+    skittles_mets = ["mean_timingError","mean_timingWindow","qvc_ITI"]
+    fig, ax = plt.subplots(3, 3, figsize = standard_fig, sharex = plot_rank, sharey = True)
+    for t, (trial_speed, tlbl) in enumerate(zip(["SpedUp","NoChange","SlowedDown"],["80%","100%","120%"])):
+        for m, (skit_met, sklbl) in enumerate(zip(skittles_mets,["Timing Error", "Timing Window", "$QVC_{IRI}$"])):
+            plot_ax = ax[t,m]
+            tmet = "{}_{}_{}".format(tapping_met, trial_speed, segment)
+            if plot_rank:
+                x = data_merged_ols[skit_met].rank(ascending = True, method = "dense")
+                y = data_merged_ols[tmet].rank(ascending = True, method = "dense")
+            else:
+                x = data_merged_ols[skit_met]
+                y = data_merged_ols[tmet]
+            plot_ax.scatter(x,
+                            y,
+                            s = 25,
+                            alpha = .3,
+                            color = "slategray")
+            if plot_rank:
+                plot_ax.set_xlim(min(x) - 3, max(x) + 3)
+                plot_ax.set_ylim(min(y) - 3, max(y) + 3)
+            if t == 2:
+                plot_ax.set_xlabel(sklbl, fontsize = 12)
+            else:
+                if not plot_rank:
+                    plot_ax.set_xticks([])
+        ax[t][0].set_ylabel(tlbl + "\nPreferred Period", fontsize = 12, labelpad = 10)
+    fig.text(0.55,
+            0.02,
+            "Throwing Performance" + {True:" (Rank)",False:""}[plot_rank],
+            fontweight = "bold",
+            horizontalalignment="center",
+            fontsize = 16)
+    fig.text(0.04,
+            0.55,
+            "Tapping Performance{}".format({True:" (Rank)",False:""}[plot_rank]),
+            fontweight = "bold",
+            horizontalalignment = "center",
+            verticalalignment = "center",
+            rotation = 90,
+            fontsize = 16)
+    fig.suptitle("Tapping Metric: {}".format(tap_met_name),
+                fontsize = 16,
+                x = 0.15,
+                y = .95,
+                fontweight = "bold",
+                horizontalalignment = "left",
+                verticalalignment = "center")
+    fig.tight_layout()
+    fig.subplots_adjust(bottom = 0.15, left = 0.15, hspace = 0.10, top = .92)
+    return fig, ax
+
+## Run Plotting
+tap_metrics = [("drift","Drift"),("qvc","$QVC_{ITI}$"),("error","Timing Error")]
+for tap_met, met_name in tap_metrics:
+    fig, ax = plot_comparison(tap_met, met_name, plot_rank = True)
+    fig.savefig("./plots/intertask/{}_correlations".format(tap_met) + FIGURE_FMT)
+    fig.savefig("./plots/intertask/{}_correlations".format(tap_met) + ".png")
+    plt.close()
+
+##############################
+### Miscellaneous Visuals
+##############################
+
+## Preferred Period vs Inter-Release-Interval
+fig, ax = plt.subplots(figsize = standard_fig)
+data_merged_ols.plot.scatter("preferred_period",
+                             "mean_ITI",
+                             ax = ax,
+                             color = "slategray",
+                             s = 40,
+                             alpha = .3,
+                             edgecolor = "black")
+ax.set_xlabel("Preferred Period (ms)",
+              fontsize = 16,
+              fontweight = "bold",
+              labelpad = 10)
+ax.set_ylabel("Mean Inter-Release-Interval (ms)",
+              fontsize = 16,
+              fontweight = "bold",
+              labelpad = 10)
+ax.tick_params(labelsize = 14)
+fig.tight_layout()
+fig.savefig("./plots/intertask/preferred_period_IRI_scatter" + FIGURE_FMT)
+fig.savefig("./plots/intertask/preferred_period_IRI_scatter" + ".png")
+plt.close()
+
+## Preferred Period/Mean ITI
+pp_iri_corr =  spearmanr(data_merged_ols["preferred_period"], data_merged_ols["mean_ITI"])
+
+##############################
+### OLS ANOVA for Rythmicity
+##############################
+
+## Fit OLS Model
+formula = "qvc_ITI ~ age + C(gender) + C(musical_experience) + C(sport_experience)"
+ols_model = smf.ols(formula, data_merged_ols).fit()
+aov_results = anova.anova_lm(ols_model)
