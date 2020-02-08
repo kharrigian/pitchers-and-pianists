@@ -253,7 +253,7 @@ plt.plot([ax.get_xlim()[0], ax.get_xlim()[1]],
          linestyle = "--")
 plt.xlabel("Online Calculation (s)")
 plt.ylabel("Offline Calculation (s)")
-plt.legend(loc = "upper left")
+plt.legend(loc = "upper left", frameon=False)
 plt.tight_layout()
 plt.savefig("./plots/methodology/preferred_period_scatter_comparison.png")
 plt.close()
@@ -377,7 +377,7 @@ def show_boundaries_at_difference_threshold(threshold,
             color = "red",
             linestyle = "--",
             label = "Boundary at {}%".format(threshold))
-    ax.legend(loc = "lower right", frameon = True, fontsize = 8)
+    ax.legend(loc = "lower right", frameon = False, fontsize = 8)
     rem_tot = (pp_online.absolute_rel_difference >= threshold).sum()
     rem_new = (pp_online.loc[pp_online.subject_kept].absolute_rel_difference >= threshold).sum()
     ax.set_title("{} Subjects Removed ({} new)".format(rem_tot, rem_new))

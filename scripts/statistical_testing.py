@@ -38,7 +38,7 @@ from scripts.libraries.helpers import load_pickle
 ###############
 
 ## Plotting Variables
-standard_fig = (10,5.8)
+standard_fig = (6.5, 4.2)
 plot_dir = "./plots/"
 stats_plots = plot_dir + "analysis/"
 # rcParams['font.family'] = 'sans-serif'
@@ -365,7 +365,8 @@ ax.axvline(mean_pp + std_pp,
            label = "")
 ax.legend(loc = "upper right",
           ncol = 1,
-          fontsize = 16)
+          fontsize = 16,
+          frameon = False)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 ax.tick_params(labelsize=16)
@@ -487,7 +488,9 @@ for a, age in enumerate(sorted(subject_deduped.age_bin.unique())):
                     ha = "center",
                     fontsize = 18)
             max_count = demo_count if demo_count > max_count else max_count
-ax.legend(loc = "upper right", frameon = True, fontsize = 16)
+ax.legend(loc = "upper right", 
+          frameon = False,
+          fontsize = 16)
 ax.set_xticks(np.arange(a+1)+.5)
 ticks = ax.set_xticklabels(age_bin_strings,
                            rotation = 0)
@@ -526,7 +529,7 @@ for a, age in enumerate(sorted(subject_deduped.age_bin.unique())):
                    edgecolor = {"Male":"navy","Female":"darkred"}[gender])
             bottom += demo_count
 ax.legend(loc = "upper left",
-          frameon = True,
+          frameon = False,
           fontsize = 16)
 ax.set_xticks(np.arange(a+1)+.5)
 ticks = ax.set_xticklabels(age_bin_strings,
@@ -649,7 +652,8 @@ leg = ax[1].legend(handles,
                    labels,
                    loc='upper right',
                    ncol = 1,
-                   fontsize = 16)
+                   fontsize = 16,
+                   frameon = False)
 for a in ax:
     a.set_ylabel("Subjects",
                  fontsize = 18,
@@ -785,7 +789,8 @@ ax[1].set_title("Continuation",
                 fontsize = 14,
                 fontweight = "bold")
 ax[0].legend(loc = "upper left",
-             fontsize = 16)
+             fontsize = 16,
+             frameon = False)
 fig.tight_layout()
 fig.subplots_adjust(wspace = .1,
                     bottom = .13)
@@ -837,7 +842,7 @@ ax.set_ylabel("Absolute Timing Error",
               fontweight = "bold")
 ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
 ax.legend(loc = "upper right",
-          frameon = True,
+          frameon = False,
           facecolor = "white",
           fontsize = 16)
 fig.tight_layout()
@@ -883,7 +888,7 @@ ax.set_ylabel("Absolute Timing Error",
               fontweight = "bold")
 ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
 ax.legend(loc = "upper right",
-          frameon = True,
+          frameon = False,
           facecolor = "white",
           fontsize = 16)
 fig.tight_layout()
@@ -1024,7 +1029,7 @@ ax.set_ylabel("Drift (ITI Percent Change)",
               fontweight = "bold")
 ax.legend(loc = "upper left",
           fontsize = 16,
-          frameon = True,
+          frameon = False,
           facecolor = "white")
 ax.set_ylim(-2.2,3.2)
 ax.spines['right'].set_visible(False)
@@ -1066,7 +1071,7 @@ ax.set_ylabel("Drift (ITI Percent Change)",
               fontweight = "bold")
 ax.legend(loc = "upper left",
           fontsize = 16,
-          frameon = True,
+          frameon = False,
           facecolor = "white")
 ax.set_ylim(-1.9,3.7)
 ax.spines['right'].set_visible(False)
@@ -1116,11 +1121,11 @@ for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
 ax[2].set_xticks(np.arange(3)+.5)
 ax[1].legend(loc = "upper left",
              fontsize = 14,
-             frameon = True,
+             frameon = False,
              facecolor = "white")
 ax[2].legend(loc = "upper left",
              fontsize = 14,
-             frameon = True,
+             frameon = False,
              facecolor = "white")
 for i in range(3):
     ax[i].axhline(0,
@@ -1143,6 +1148,52 @@ fig.tight_layout()
 fig.subplots_adjust(wspace = 0.1)
 fig.savefig(stats_plots + "combined_drift_standard_and_gender_and_musicalexperience" + FIGURE_FMT, dpi=300)
 fig.savefig(stats_plots + "combined_drift_standard_and_gender_and_musicalexperience" + ".png", dpi=300)
+plt.close()
+
+## Combined Standard Drift + Musical Experience
+fig, ax = plt.subplots(1, 2, figsize = standard_fig, sharex = False, sharey = True)
+for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
+    data_to_plot = drift_by_trial_speed_avg.loc[trial_speed]
+    ax[0].bar(t,
+              data_to_plot["drift"]["mean"],
+              yerr = data_to_plot["drift"]["std_error"],
+              color = "gray",
+              alpha = .5,
+              edgecolor = "black")
+ax[0].set_xticks(np.arange(3))
+for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
+    for m in [0, 1]:
+        data_to_plot = drift_by_trial_speed_me_avg.loc[trial_speed, m]
+        ax[1].bar(0.025 + t + m*bar_width,
+                  data_to_plot["drift"]["mean"],
+                  yerr = data_to_plot["drift"]["std_error"],
+                  color = "slategray",
+                  alpha = .4 if m == 0 else .8,
+                  edgecolor = "black",
+                  label = {0:"w/o M.E.",1:"w/ M.E."}[m] if t == 0 else "",
+                  width = bar_width,
+                  align = "edge")
+ax[1].set_xticks(np.arange(3)+.5)
+ax[1].legend(loc = "upper left",
+             fontsize = 14,
+             frameon = False,
+             facecolor = "white")
+for i in range(2):
+    ax[i].axhline(0,
+                  color = "black",
+                  linewidth = 1)
+    ax[i].set_xticklabels(["20%\nSlower","Preferred","20%\nFaster"])
+    ax[i].tick_params(labelsize = 14)
+    ax[i].spines['right'].set_visible(False)
+    ax[i].spines['top'].set_visible(False)
+    ax[i].yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
+ax[0].set_ylabel("Drift (ITI Percent Change)",
+                 fontsize = 16,
+                 fontweight = "bold")
+fig.tight_layout()
+fig.subplots_adjust(wspace = 0.1)
+fig.savefig(stats_plots + "combined_drift_standard_and_musicalexperience" + FIGURE_FMT, dpi=300)
+fig.savefig(stats_plots + "combined_drift_standard_and_musicalexperience" + ".png", dpi=300)
 plt.close()
 
 ## Within-Subject
@@ -1317,7 +1368,7 @@ ax.set_ylabel("Quartile Variation Coefficient",
               labelpad = 10,
               fontweight = "bold")
 ax.legend(loc = "upper right",
-          frameon = True,
+          frameon = False,
           facecolor = "white",
           fontsize = 14)
 fig.tight_layout()
@@ -1360,7 +1411,7 @@ ax.set_ylabel("Quartile Variation Coefficient",
               labelpad = 10,
               fontweight = "bold")
 ax.legend(loc = "upper right",
-          frameon = True,
+          frameon = False,
           facecolor = "white",
           fontsize = 14)
 fig.tight_layout()
@@ -1399,7 +1450,7 @@ ax.set_ylabel("Quartile Variation Coefficient",
               labelpad = 15,
               fontweight = "bold")
 ax.legend(loc = "upper left",
-          frameon = True,
+          frameon = False,
           facecolor = "white",
           fontsize = 16)
 ax.set_ylim(top = 0.07)
@@ -1441,7 +1492,7 @@ ax[0].set_ylabel("Quartile Variation\nCoefficient",
                  fontweight = "bold")
 ax[1].legend(loc = "lower right",
              fontsize = 16,
-             frameon = True,
+             frameon = False,
              facecolor = "white",
              framealpha = 1)
 fig.text(0.55,

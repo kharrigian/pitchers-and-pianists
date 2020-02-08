@@ -4,7 +4,7 @@ Exploration of the correlation between Skittles and Tapping performance
 """
 
 FIGURE_FMT = ".pdf"
-standard_fig = (10,5.8)
+standard_fig = (6.5, 4.2)
 
 ##############################
 ### Imports
@@ -371,7 +371,7 @@ def plot_comparison(tapping_met = "qvc",
     """
     skittles_mets = ["mean_timingError","mean_timingWindow","qvc_ITI"]
     fig, ax = plt.subplots(3, 3, figsize = standard_fig, sharex = plot_rank, sharey = True)
-    for t, (trial_speed, tlbl) in enumerate(zip(["SpedUp","NoChange","SlowedDown"],["80%","100%","120%"])):
+    for t, (trial_speed, tlbl) in enumerate(zip(["SpedUp","NoChange","SlowedDown"],["20% Faster","Preferred","20% Slower"])):
         for m, (skit_met, sklbl) in enumerate(zip(skittles_mets,["Timing Error", "Timing Window", "$QVC_{IRI}$"])):
             plot_ax = ax[t,m]
             tmet = "{}_{}_{}".format(tapping_met, trial_speed, segment)
@@ -386,29 +386,31 @@ def plot_comparison(tapping_met = "qvc",
                             s = 25,
                             alpha = .3,
                             color = "slategray")
+            plot_ax.spines['right'].set_visible(False)
+            plot_ax.spines['top'].set_visible(False)
             if plot_rank:
-                plot_ax.set_xlim(min(x) - 3, max(x) + 3)
-                plot_ax.set_ylim(min(y) - 3, max(y) + 3)
+                plot_ax.set_xlim(min(x) - 3, max(x) + 15)
+                plot_ax.set_ylim(min(y) - 3, max(y) + 10)
             if t == 2:
                 plot_ax.set_xlabel(sklbl, fontsize = 12)
             else:
                 if not plot_rank:
                     plot_ax.set_xticks([])
-        ax[t][0].set_ylabel(tlbl + "\nPreferred Period", fontsize = 12, labelpad = 10)
+        ax[t][0].set_ylabel(tlbl, fontsize = 12, labelpad = 5)
     fig.text(0.55,
             0.02,
             "Throwing Performance" + {True:" (Rank)",False:""}[plot_rank],
             fontweight = "bold",
             horizontalalignment="center",
             fontsize = 16)
-    fig.text(0.04,
-            0.55,
-            "Tapping Performance{}".format({True:" (Rank)",False:""}[plot_rank]),
-            fontweight = "bold",
-            horizontalalignment = "center",
-            verticalalignment = "center",
-            rotation = 90,
-            fontsize = 16)
+    fig.text(0.02,
+             0.55,
+             "Tapping Performance{}".format({True:" (Rank)",False:""}[plot_rank]),
+             fontweight = "bold",
+             horizontalalignment = "center",
+             verticalalignment = "center",
+             rotation = 90,
+             fontsize = 16)
     fig.suptitle("Tapping Metric: {}".format(tap_met_name),
                 fontsize = 16,
                 x = 0.15,
@@ -417,7 +419,7 @@ def plot_comparison(tapping_met = "qvc",
                 horizontalalignment = "left",
                 verticalalignment = "center")
     fig.tight_layout()
-    fig.subplots_adjust(bottom = 0.15, left = 0.15, hspace = 0.10, top = .92)
+    fig.subplots_adjust(bottom = 0.2, left = 0.15, hspace = 0.10, top = .92)
     return fig, ax
 
 ## Run Plotting
@@ -432,10 +434,13 @@ for tap_met, met_name in tap_metrics:
 ### Miscellaneous Visuals
 ##############################
 
+## Format
+data_merged_ols["mean_iti_seconds"] = data_merged_ols["mean_ITI"] / 1000
+
 ## Preferred Period vs Inter-Release-Interval
 fig, ax = plt.subplots(figsize = standard_fig)
 data_merged_ols.plot.scatter("preferred_period",
-                             "mean_ITI",
+                             "mean_iti_seconds",
                              ax = ax,
                              color = "slategray",
                              s = 40,
@@ -445,11 +450,13 @@ ax.set_xlabel("Preferred Period (ms)",
               fontsize = 16,
               fontweight = "bold",
               labelpad = 10)
-ax.set_ylabel("Mean Inter-Release-Interval (ms)",
+ax.set_ylabel("Mean Inter-Release-Interval (s)",
               fontsize = 16,
               fontweight = "bold",
               labelpad = 10)
 ax.tick_params(labelsize = 14)
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
 fig.tight_layout()
 fig.savefig("./plots/intertask/preferred_period_IRI_scatter" + FIGURE_FMT)
 fig.savefig("./plots/intertask/preferred_period_IRI_scatter" + ".png")
