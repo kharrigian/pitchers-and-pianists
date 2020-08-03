@@ -99,40 +99,35 @@ def plot_experimental_design(subject, trial):
     fig, ax = plt.subplots(2, 1, figsize = standard_fig, sharex = False)
     ax[0].plot(np.arange(len(trial_force[trial-1]))/2000., trial_force[trial-1], color = "black",
                 linewidth = 2)
-    ax[0].axvline(15., linestyle = "--", linewidth = 3, color = "red", label = "Metronome Ends")
+    ax[0].axvline(15., linestyle = "--", linewidth = 3, color = "red")
     ax[0].set_xlabel("Time (s)", fontsize = 16, labelpad = 5, fontweight = "bold")
     ax[0].set_ylabel("Force (N)", fontsize = 16, labelpad = 5, fontweight = "bold")
     ax[0].set_xlim(0, len(trial_force[trial-1])/2000.)
     ax[0].set_ylim(min(trial_force[trial-1]), max(trial_force[trial-1]) * 1.1)
+    ax[0].text(7.5, max(trial_force[trial-1]) * 1.1, "Synchronization", fontweight="bold", ha="center", va="bottom", style="italic", fontsize=12)
+    ax[0].text(27.5, max(trial_force[trial-1]) * 1.1, "Continuation", fontweight="bold", ha="center", va="bottom", style="italic", fontsize=12)
     sync_taps = trial_taps[trial]["metronome"][-9:][:,0]
     cont_taps = trial_taps[trial]["no_metronome"][-9:][:,0]
     ax[0].fill_between([np.mean(sync_taps[-9:-7])/2000., 15], ax[0].get_ylim()[0] - 1, ax[0].get_ylim()[1] + 1,
-                        color = "blue", alpha = .2, label = "Sync. Window")
+                        color = "blue", alpha = .2)
     ax[0].fill_between([np.mean(cont_taps[-9:-7])/2000., len(trial_force[trial-1])/2000.], ax[0].get_ylim()[0] - 1, ax[0].get_ylim()[1] + 1,
-                        color = "green", alpha = .2, label = "Cont. Window")
+                        color = "green", alpha = .2)
     met_ind = np.arange(len(trial_taps[trial]["metronome"]))+1
     nomet_ind = np.arange(max(met_ind)+1, max(met_ind)+1 + len(trial_taps[trial]["no_metronome"]))
     ax[1].plot(met_ind, trial_taps[trial]["metronome"][:,2]/2., color = "black", linewidth = 2, linestyle = "-")
     ax[1].scatter(met_ind, trial_taps[trial]["metronome"][:,2]/2., s = 50, color = "gray", edgecolor = "black", zorder = 3)
     ax[1].plot(nomet_ind, trial_taps[trial]["no_metronome"][:,2]/2., color = "black", linewidth = 2, linestyle = "-")
     ax[1].scatter(nomet_ind, trial_taps[trial]["no_metronome"][:,2]/2., s = 50, color = "gray", edgecolor = "black", zorder = 3)
-    ax[1].axvline(max(met_ind) + .5, linewidth = 3, linestyle = "--", color = "red", label = "Metronome Ends")
-    ax[1].axhline(preferred_period, linestyle = "-.", color = "black", linewidth = 1.5)
+    ax[1].axvline(max(met_ind) + .5, linewidth = 3, linestyle = "--", color = "red")
+    ax[1].axhline(preferred_period, linestyle = "-.", color = "black", linewidth = 1.5, label="Preferred")
     ax[1].fill_between([min(met_ind[-8:]) - .5, max(met_ind) + .5], ax[1].get_ylim()[0] - 100, ax[1].get_ylim()[1] + 100,
-                        color = "blue", alpha = .2, label = "Sync. Window")
+                        color = "blue", alpha = .2)
     ax[1].fill_between([min(nomet_ind[-8:]) - .5, max(nomet_ind) + .5], ax[1].get_ylim()[0] - 100, ax[1].get_ylim()[1] + 100,
-                        color = "green", alpha = .2, label = "Cont. Window")
-    # t = ax[1].text(max(nomet_ind)+1, preferred_period, "Preferred/Trial\nPeriod" if trial_frequency[trial-1] == 1 else "Preferred Period",
-    #                 fontsize = 14,
-    #                 va = "center",
-    #                 multialignment = "center")
+                        color = "green", alpha = .2)
     if trial_frequency[trial-1] != 1:
-        ax[1].axhline(preferred_period * trial_frequency[trial-1], linestyle = ":", color = "black", linewidth = 1.5)
-        # ax[1].text(max(nomet_ind) + 1, preferred_period * trial_frequency[trial-1], "Trial Period",
-        #           fontsize = 14,
-        #           va = "center")
-    ax[1].set_xlabel("Tap #", fontsize = 16, labelpad = 9, fontweight = "bold")
-    ax[1].set_ylabel("Inter Tap\nInterval (ms)", fontsize = 16, labelpad = 9, multialignment = "center", fontweight = "bold")
+        ax[1].axhline(preferred_period * trial_frequency[trial-1], linestyle = ":", color = "black", linewidth = 1.5, label="Metronome")
+    ax[1].set_xlabel("Tap #", fontsize = 16, labelpad = 7, fontweight = "bold")
+    ax[1].set_ylabel("Inter Tap\nInterval (ms)", fontsize = 16, labelpad = 7, multialignment = "center", fontweight = "bold")
     ax[1].set_xlim(-.5, max(nomet_ind)+.5)
     met_itis = trial_taps[trial]["metronome"][:,2]
     nomet_itis = trial_taps[trial]["no_metronome"][:,2]
@@ -146,24 +141,19 @@ def plot_experimental_design(subject, trial):
         a.tick_params(labelsize = 14)
     ax[0].get_yaxis().set_label_coords(-0.15,0.5)
     ax[1].get_yaxis().set_label_coords(-0.15,0.5)
-    handles, labels = ax[1].get_legend_handles_labels()
-    # leg = ax[0].legend(handles,
-    #                    labels,
-    #                    loc = (1.0075, .6),
-    #                    ncol = 1,
-    #                    columnspacing=1,
-    #                    fontsize = 14,
-    #                    borderpad = .15,
-    #                    handlelength = 2,
-    #                    edgecolor = "gray",
-    #                    frameon=False)
-    # for t in leg.texts:
-    #     t.set_horizontalalignment("left")
+    leg = ax[1].legend(loc="lower right",
+                       frameon=True,
+                       ncol=2,
+                       borderpad=.15,
+                       handlelength=2,
+                       edgecolor="gray")
     for a in ax:
         a.spines['right'].set_visible(False)
         a.spines['top'].set_visible(False)
+    fig.text(0.01, .93, "(A)", fontweight="bold", fontsize=16, fontstyle="italic")
+    fig.text(0.01, .53, "(B)", fontweight="bold", fontsize=16, fontstyle="italic")
     fig.tight_layout()
-    # fig.subplots_adjust(right = .76)
+    fig.subplots_adjust(hspace = .55)
     return fig, ax
 
 def plot_method_comparison_with_zoom(subject, trial, peakthresh = 50, time_start = 15, time_stop = 20):
@@ -189,28 +179,31 @@ def plot_method_comparison_with_zoom(subject, trial, peakthresh = 50, time_start
     fig, ax = plt.subplots(2, 2, figsize = standard_fig, sharex = False, sharey = True)
     for col in ax:
         for row in col:
-            row.plot(time_ind, trial_force, color = "black", linewidth = 1, alpha = 1)
+            row.plot(time_ind, trial_force, color = "black", linewidth = 1, alpha = .6)
             row.set_xlim(0, len(trial_force)/2000.)
             row.set_ylim(min(trial_force), max(trial_force)*1.1)
             row.tick_params(labelsize = 14)
             row.spines['right'].set_visible(False)
             row.spines['top'].set_visible(False)
-    ax[0,1].vlines(taps_hmm / 2000., min(trial_force), max(trial_force) * 1.1, color = "red", linewidth = 1, linestyle = ":")
-    ax[1,1].vlines(taps_hmm / 2000., min(trial_force), max(trial_force) * 1.1, color = "red", linewidth = 1, linestyle = "--")
-    ax[0,0].vlines(taps_standard / 2000.,min(trial_force), max(trial_force) * 1.1,  color = "red", linewidth = 1, linestyle = ":")
-    ax[1,0].vlines(taps_standard / 2000.,min(trial_force), max(trial_force) * 1.1,  color = "red", linewidth = 1, linestyle = "--")
-    ax[1,0].set_xlim(time_start, time_stop)
+    ax[1,0].vlines(taps_hmm / 2000., min(trial_force), max(trial_force) * 1.1, color = "crimson", linewidth = 1, linestyle = ":", alpha=.6)
+    ax[1,1].vlines(taps_hmm / 2000., min(trial_force), max(trial_force) * 1.1, color = "crimson", linewidth = 1, linestyle = "--", alpha=.6)
+    ax[0,0].vlines(taps_standard / 2000.,min(trial_force), max(trial_force) * 1.1,  color = "crimson", linewidth = 1, linestyle = ":", alpha=.6)
+    ax[0,1].vlines(taps_standard / 2000.,min(trial_force), max(trial_force) * 1.1,  color = "crimson", linewidth = 1, linestyle = "--", alpha=.6)
+    ax[0,1].set_xlim(time_start, time_stop)
     ax[1,1].set_xlim(time_start, time_stop)
     ymin_top = min(trial_force) * .9; ymax_top = max(trial_force) * 1.05
     ymax_bottom = max(trial_force[int(time_start * 2000):int(time_stop * 2000)]) * 1.05
     for i in range(2): ax[1, i].set_ylim(top = ymax_bottom)
     for i in range(2): ax[0, i].set_ylim(ymin_top, ymax_top)
-    ax[0,1].set_title("HMM", fontsize = 18, fontweight = "bold")
-    ax[0,0].set_title("Standard", fontsize = 18, fontweight = "bold")
-    ax[0,0].set_ylabel("Force (N)", fontsize = 16,fontweight = "bold"); ax[1,0].set_ylabel("Force (N)", fontsize = 16,fontweight = "bold")
-    ax[1,0].set_xlabel("Time (s)", fontsize = 16,fontweight = "bold"); ax[1,1].set_xlabel("Time (s)", fontsize = 16, fontweight = "bold")
+    ax[0,0].set_ylabel("Force (N)", fontsize = 14,fontweight = "bold"); ax[1,0].set_ylabel("Force (N)", fontsize = 14,fontweight = "bold")
+    for i in range(2):
+        ax[1,i].set_xlabel("Time (s)", fontsize = 14,fontweight = "bold", labelpad=-1)
+    fig.text(0.01, .94, "(A)", ha="left", va="center", fontweight="bold", fontsize=16, fontstyle="italic")
+    fig.text(0.01, .49, "(B)", ha="left", va="center", fontweight="bold", fontsize=16, fontstyle="italic")
+    fig.text(0.55, .94, "Standard Method", ha="center", va="center", fontweight="bold", fontsize=16, fontstyle="italic")
+    fig.text(0.55, .49, "HMM Method", ha="center", va="center", fontweight="bold", fontsize=16, fontstyle="italic")
     fig.tight_layout()
-    fig.subplots_adjust(wspace=.1)
+    fig.subplots_adjust(top=.9, wspace=.1, hspace=.42)
     return fig, ax
 
 def plot_subject_drift(subject, sharey = True):
@@ -235,7 +228,7 @@ def plot_subject_drift(subject, sharey = True):
     nochange_trial = drift_values.loc[drift_values.loc[drift_values.freq == 1.0].drift.map(np.abs).idxmin()]["trial"].astype(int)
     slowed_trial = drift_values.loc[drift_values.freq == 1.2].sort_values("drift", ascending = True)["trial"].values[0]
     ## Create Plot
-    fig, ax = plt.subplots(1,3, figsize=standard_fig, sharey=sharey)
+    fig, ax = plt.subplots(1,3, figsize=(8,3.5), sharey=sharey)
     min_seen, max_seen = 10000, 0
     for t, trial in enumerate([sped_trial, nochange_trial, slowed_trial]):
         taps = trial_taps[trial]
@@ -251,22 +244,22 @@ def plot_subject_drift(subject, sharey = True):
         taps = trial_taps[trial]
         trial_met = taps["metronome"]; met_ind = np.arange(len(trial_met)) + 1
         trial_nomet = taps["no_metronome"]; nomet_ind = np.arange(met_ind.max()+1, met_ind.max()+1 + len(trial_nomet))
-        ax[t].plot(met_ind, trial_met[:,2]/2, color = "black", linewidth = 1, linestyle = "-", alpha = .3)
-        ax[t].scatter(met_ind, trial_met[:,2]/2., s = 15, color = "gray", edgecolor = "black", zorder = 3, alpha = .3)
-        ax[t].plot(nomet_ind, trial_nomet[:,2]/2., color = "black", linewidth = 1, linestyle = "-", alpha = .3)
-        ax[t].scatter(nomet_ind, trial_nomet[:,2]/2., s = 15, color = "gray", edgecolor = "black", zorder = 3, alpha = .3)
-        ax[t].axvline(max(met_ind) + .5, linewidth = 1.5, linestyle = "--", color = "red", label = "Metronome Ends", alpha = .8)
-        ax[t].axhline(preferred_period, linestyle = "-.", color = "black", linewidth = 1.5, zorder = 3,
-                        label = "Preferred Period" if t == 0 else "", alpha = .5)
+        ax[t].plot(met_ind, trial_met[:,2]/2, color = "black", linewidth = 2, linestyle = "-", alpha = .3)
+        ax[t].scatter(met_ind, trial_met[:,2]/2., s = 5, color = "gray", edgecolor = "slategray", zorder = 3, alpha = .3)
+        ax[t].plot(nomet_ind, trial_nomet[:,2]/2., color = "black", linewidth = 2, linestyle = "-", alpha = .3)
+        ax[t].scatter(nomet_ind, trial_nomet[:,2]/2., s = 5, color = "gray", edgecolor = "slategray", zorder = 3, alpha = .3)
+        ax[t].axvline(max(met_ind) + .5, linewidth = 3, linestyle = "--", color = "red", alpha = .8)
+        ax[t].axhline(preferred_period, linestyle = "-.", color = "black", linewidth = 3, zorder = 3,
+                        label = "Preferred" if t == 2 else "", alpha = .5)
         if trial_frequency[trial-1] != 1:
-            ax[t].axhline(preferred_period * trial_frequency[trial-1], linestyle = ":", color = "black", linewidth = 1.5,
-                        zorder = 3, label = "Trial Period" if t == 0 else "", alpha = .5)
+            ax[t].axhline(preferred_period * trial_frequency[trial-1], linestyle = ":", color = "black", linewidth = 3,
+                        zorder = 3, label = "Metronome" if t == 2 else "", alpha = .5)
         ax[t].set_xticks([i for i in range(0, max(nomet_ind)) if i % 20 == 0])
         ## drift values
         met_med = np.median(trial_met[-8:,2])/2
         nomet_med = np.median(trial_nomet[-8:,2])/2
-        ax[t].fill_between(met_ind[-8:], met_med - 3, met_med + 3, color = "black", alpha = 1, zorder = 10)
-        ax[t].fill_between(nomet_ind[-8:], nomet_med - 3, nomet_med + 3, color = "black", alpha = 1, zorder = 10)
+        ax[t].fill_between(met_ind[-8:], met_med - 3, met_med + 3, color = "blue", alpha = .8, zorder = 10, label="Synchronization" if t == 0 else "", edgecolor="navy")
+        ax[t].fill_between(nomet_ind[-8:], nomet_med - 3, nomet_med + 3, color = "green", alpha = .8, zorder = 10, label="Continuation" if t == 0 else "", edgecolor="darkgreen")
         ax[t].set_xlim(-.5, max(nomet_ind)+.5)
         ax[t].set_xlabel("Tap #", fontsize = 14, labelpad = 5, fontweight = "bold")
         ax[t].tick_params(labelsize = 14)
@@ -276,17 +269,17 @@ def plot_subject_drift(subject, sharey = True):
                            min_seen - 20,
                            max_seen + 20,
                            color = "blue",
-                           alpha = .2,
-                           label = "Synchronization Window")
+                           alpha = .2)
         ax[t].fill_between([min(nomet_ind[-8:]) - .5, max(nomet_ind) + .5],
                             min_seen- 20,
                             max_seen + 20,
                             color = "green", 
-                            alpha = .2,
-                            label = "Continuation Window")
+                            alpha = .2)
+    ax[0].legend(loc="lower right", frameon=True, handlelength=1, borderpad=.25, edgecolor="gray")
+    ax[2].legend(loc="upper right", frameon=True, handlelength=3, borderpad=.25, edgecolor="gray")
     ax[0].set_ylabel("Inter Tap\nInterval (ms)", fontsize = 14, labelpad = 5, multialignment = "center", fontweight = "bold")
     for j, title in enumerate(["20% Slower","Preferred","20% Faster"]):
-        ax[j].set_title(title, fontsize = 16, fontweight = "bold")
+        ax[j].set_title(title, fontsize = 16, fontweight = "bold", fontstyle="italic")
         ax[j].set_ylim(min_seen - 10, max_seen + 10)
     fig.tight_layout()
     return fig, ax

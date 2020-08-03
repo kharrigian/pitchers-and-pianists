@@ -338,8 +338,8 @@ fig, ax = plt.subplots(1,1, figsize = standard_fig, sharey = False, sharex = Fal
 b = ax.hist(subject_deduped["preferred_period"],
             bins = bins,
             normed = False,
-            color = "slategray",
-            edgecolor = "black",
+            color = "navy",
+            edgecolor = "navy",
             alpha = .3,
             label = "")
 ax.set_xlabel("Preferred Period (ms)",
@@ -349,24 +349,26 @@ ax.set_ylabel("Subjects",
               fontsize = 18,
               fontweight = "bold")
 ax.axvline(mean_pp,
-           color = "black",
+           color = "navy",
            linestyle = "--",
            linewidth = 3,
            label = "Mean = {:,.0f} ms".format(mean_pp))
 ax.axvline(mean_pp - std_pp,
-           color = "black",
+           color = "navy",
            linestyle = ":",
            linewidth = 3,
            label = "SD = {:,.0f} ms".format(std_pp))
 ax.axvline(mean_pp + std_pp,
-           color = "black",
+           color = "navy",
            linestyle = ":",
            linewidth = 3,
            label = "")
 ax.legend(loc = "upper right",
           ncol = 1,
           fontsize = 16,
-          frameon = False)
+          frameon=True,
+          handlelength=2,
+          borderpad=0.25)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 ax.tick_params(labelsize=16)
@@ -379,14 +381,14 @@ plt.close()
 fig, ax = plt.subplots(1,1, figsize = standard_fig, sharey = False, sharex = False)
 ax.scatter(subject_deduped["age"],
            subject_deduped["preferred_period"],
-           color = "blue",
-           edgecolor="navy",
+           color = "darkblue",
+           edgecolor="darkblue",
            alpha = .5,
            s = 50)
 ax.set_xlabel("Age (yrs.)",
               fontsize = 18,
               fontweight = "bold")
-ax.set_ylabel("Preferred period (ms)",
+ax.set_ylabel("Preferred Period (ms)",
               fontsize = 18,
               fontweight = "bold")
 ax.tick_params(labelsize=16)
@@ -410,15 +412,15 @@ fig, ax = plt.subplots(figsize = standard_fig)
 ax.bar([0, 1],
        me_pp_avg["mean"].values,
        yerr = me_pp_avg["std_error"].values,
-       color = "slategray",
-       edgecolor = "black",
-       alpha = .3)
+       color = "navy",
+       edgecolor = "navy",
+       alpha = .5)
 ax.set_xticks([0,1])
-ax.set_xticklabels(["w/o M.E.","w/ M.E."])
+ax.set_xticklabels(["No","Yes"])
 ax.set_xlabel("Musical Experience",
               fontsize = 18,
               fontweight = "bold")
-ax.set_ylabel("Preferred Period",
+ax.set_ylabel("Preferred Period (ms)",
               fontsize = 18,
               fontweight = "bold")
 ax.spines['right'].set_visible(False)
@@ -437,14 +439,17 @@ fig, ax = plt.subplots(figsize = standard_fig)
 ax.fill_between([age_bin_points[0]-1] + age_bin_points[1:-1] + [age_bin_points[-1]+1+1],
                 age_bin_pp_avg[0].values,
                 age_bin_pp_avg[2].values,
-                color = "blue",
+                color = "navy",
                 alpha = .3)
 ax.errorbar(age_bin_points,
             age_bin_pp_avg["mean"].values,
-            yerr = age_bin_pp_avg["std_error"].values)
+            yerr = age_bin_pp_avg["std_error"].values,
+            color="navy",
+            linewidth=2)
 ax.set_xticks(age_bin_points)
 ticks = ax.set_xticklabels(age_bin_strings,
-                           rotation = 0)
+                           rotation = 45,
+                           ha = "right")
 ax.set_xlabel("Age (yrs.)",
               fontsize = 18,
               fontweight = "bold")
@@ -475,12 +480,12 @@ for a, age in enumerate(sorted(subject_deduped.age_bin.unique())):
         demo_count = len(subject_deduped.loc[(subject_deduped.age_bin == age)&(subject_deduped.gender==gender)])
         ax.bar(0.025 + g*0.45 + a,
                demo_count,
-               color = {"Male":"blue","Female":"red"}[gender],
+               color = {"Male":"teal","Female":"orangered"}[gender],
                alpha = .5,
                align = "edge",
                width = .45,
                label = gender if a == 0 else "",
-               edgecolor = {"Male":"navy","Female":"darkred"}[gender])
+               edgecolor = {"Male":"darkslategray","Female":"crimson"}[gender])
         if demo_count > 0:
             ax.text(0.25 + g*0.45 + a,
                     demo_count + 1,
@@ -488,9 +493,12 @@ for a, age in enumerate(sorted(subject_deduped.age_bin.unique())):
                     ha = "center",
                     fontsize = 18)
             max_count = demo_count if demo_count > max_count else max_count
-ax.legend(loc = "upper right", 
-          frameon = False,
-          fontsize = 16)
+ax.legend(loc = "upper left", 
+          frameon = True,
+          fontsize = 16,
+          handlelength=2,
+          borderpad = 0.25,
+          edgecolor="gray")
 ax.set_xticks(np.arange(a+1)+.5)
 ticks = ax.set_xticklabels(age_bin_strings,
                            rotation = 0)
@@ -521,16 +529,19 @@ for a, age in enumerate(sorted(subject_deduped.age_bin.unique())):
             ax.bar(0.025 + g*0.45 + a,
                    demo_count,
                    bottom = bottom,
-                   color = {"Male":"blue","Female":"red"}[gender],
+                   color = {"Male":"teal","Female":"orangered"}[gender],
                    alpha = 0.25 if e == 1 else .6,
                    align = "edge",
                    width = .45,
                    label = "{} ({})".format(gender, {1:"w/ M.E.",0:"w/o M.E."}[experience]) if a == 0 else "",
-                   edgecolor = {"Male":"navy","Female":"darkred"}[gender])
+                   edgecolor = {"Male":"darkslategray","Female":"crimson"}[gender])
             bottom += demo_count
 ax.legend(loc = "upper left",
-          frameon = False,
-          fontsize = 16)
+          frameon = True,
+          fontsize = 12,
+          handlelength = 2,
+          borderpad = 0.25,
+          edgecolor = "gray")
 ax.set_xticks(np.arange(a+1)+.5)
 ticks = ax.set_xticklabels(age_bin_strings,
                            rotation = 0)
@@ -553,15 +564,15 @@ plt.close()
 ###############
 
 ## Musical Experience Distribution
-musical_experience_check = lambda row: "w/o M.E." if row["musical_experience"] == 0 else \
-                                                "w/ M.E.\n(Known Amount)" if row["musical_experience_yrs"] >= 1 else \
-                                                "w/ M.E. \n(Unknown Amount)"
+musical_experience_check = lambda row: "No" if row["musical_experience"] == 0 else \
+                                                "Yes\n(Specified)" if row["musical_experience_yrs"] >= 1 else \
+                                                "Yes\n(Unspecified)"
 subject_deduped["musical_experience_specified"] = subject_deduped.apply(musical_experience_check, axis = 1)
 musical_experience_dist = subject_deduped.musical_experience_specified.value_counts()
 music_exp_subset = subject_deduped.loc[subject_deduped.musical_experience_yrs >= 1]
 fig, ax = plt.subplots(1,2, figsize = standard_fig)
 musical_experience_dist.plot.barh(ax = ax[0],
-                                  color = "blue",
+                                  color = "navy",
                                   edgecolor = "navy",
                                   alpha = .5)
 ax[0].set_yticks(np.arange(3))
@@ -569,7 +580,7 @@ ax[0].set_yticklabels(musical_experience_dist.index.values,
                       multialignment = "center")
 ax[1].scatter(music_exp_subset["age"],
               music_exp_subset["musical_experience_yrs"],
-              color = "blue",
+              color = "navy",
               edgecolor = "navy",
               s = 50,
               alpha = .5)
@@ -584,16 +595,22 @@ ax[0].set_xlabel("Subjects",
 ax[1].set_xlabel("Age (yrs.)",
                  fontsize=18,
                  fontweight = "bold")
-ax[1].set_ylabel("Years of Musical Experience",
+ax[0].set_ylabel("Experience (Response)",
                  labelpad = 10,
                  fontsize=18,
                  fontweight = "bold")
+ax[1].set_ylabel("Experience (yrs.)",
+                 labelpad = 10,
+                 fontsize=18,
+                 fontweight = "bold")
+ax[1].set_xlim(left=0)
+ax[1].set_ylim(bottom=0)
 for a in ax:
     a.tick_params(labelsize = 16)
     a.spines['right'].set_visible(False)
     a.spines['top'].set_visible(False)
 fig.tight_layout()
-fig.subplots_adjust(wspace = .4)
+fig.subplots_adjust(wspace = .6)
 plt.savefig(stats_plots + "musical_experience" + FIGURE_FMT)
 plt.savefig(stats_plots + "musical_experience" + ".png")
 plt.close()
@@ -608,52 +625,49 @@ for x, experience in enumerate([0,1]):
                                              (subject_deduped.gender==gender)])
         ax[0].bar(0.025 + x*.45 + g,
                   demo_counts,
-                  color = "slategray",
+                  color = "teal" if g == 1 else "orangered",
                   alpha = {0:.4,1:.8}[experience],
-                  label = {1:"w/ M.E.",0:"w/o M.E."}[experience] if g == 0 else "",
+                  label = {1:"Yes",0:"No"}[experience] if g == 0 else "",
                   width = .45,
                   align = "edge",
-                  edgecolor = "black" if x == 1 else "black")
-        ax[0].text(0.025+ x*.45 + .45/2 + g,
-                   demo_counts + 4,
-                   demo_counts + 1,
-                   ha="center",
-                   fontsize = 16)
+                  edgecolor = "darkslategray" if g == 1 else "crimson")
         max_gender_count = demo_counts if demo_counts > max_gender_count else max_gender_count
-
     for a, age in enumerate(subject_deduped.age_bin.unique()):
         demo_counts = len(subject_deduped.loc[(subject_deduped.musical_experience==experience)&
                                              (subject_deduped.age_bin==age)])
         ax[1].bar(0.025 + x*.45 + a,
                   demo_counts,
-                  color = "slategray",
+                  color = "navy",
                   alpha = {0:.4,1:.8}[experience],
-                  label =  {1:"w/ M.E.",0:"w/o M.E."}[experience] if a == 0 else "",
+                  label =  {1:"Yes",0:"No"}[experience] if a == 0 else "",
                   width = .45,
                   align = "edge",
-                  edgecolor = "black" if x == 1 else "black")
-        ax[1].text(0.025+ x*.45 +.45/2 + a,
-                   demo_counts + 1,
-                   demo_counts + 1,
-                   ha="center",
-                   fontsize = 16)
+                  edgecolor = "navy")
         max_age_count = demo_counts if demo_counts > max_age_count else max_age_count
 ax[0].set_ylim(0,
-               max_gender_count+20)
+               max_gender_count+5)
 ax[1].set_ylim(0,
-               max_age_count + 20)
+               max_age_count + 5)
 ax[0].set_xticks(np.arange(2)+.5)
-ax[0].set_xticklabels(["Female","Male"])
+ax[0].set_xticklabels(["Female","Male"],
+                      rotation = 45,
+                      ha = "right")
 ax[1].set_xticks(np.arange(a+1)+.5)
 ax[1].set_xticklabels(age_bin_strings,
-                      rotation = 0)
-handles, labels = ax[0].get_legend_handles_labels()
+                      rotation = 45,
+                      ha="right")
+handles, labels = ax[1].get_legend_handles_labels()
 leg = ax[1].legend(handles,
                    labels,
                    loc='upper right',
                    ncol = 1,
-                   fontsize = 16,
-                   frameon = False)
+                   fontsize = 12,
+                   frameon = True,
+                   title="Musical\nExperience",
+                   edgecolor="gray",
+                   borderpad = 0.25,
+                   handlelength = 2)
+plt.setp(leg.get_title(), fontsize=12, multialignment="center")
 for a in ax:
     a.set_ylabel("Subjects",
                  fontsize = 18,
@@ -661,13 +675,22 @@ for a in ax:
     a.tick_params(labelsize = 14)
     a.spines['right'].set_visible(False)
     a.spines['top'].set_visible(False)
-ax[0].set_xlabel("Gender",
-                 fontsize = 18,
-                 fontweight = "bold")
-ax[1].set_xlabel("Age (yrs.)",
-                 fontsize = 18,
-                 fontweight = "bold")
+fig.text(0.3,
+         0.04,
+         "Gender",
+         fontsize=18,
+         ha="center",
+         va="center",
+         fontweight="bold")
+fig.text(0.8,
+         0.04,
+         "Age",
+         fontsize=18,
+         ha="center",
+         va="center",
+         fontweight="bold")
 fig.tight_layout()
+fig.subplots_adjust(bottom=0.25)
 plt.savefig(stats_plots + "musical_experience_demographics" + FIGURE_FMT)
 plt.savefig(stats_plots + "musical_experience_demographics" + ".png")
 plt.close()
@@ -764,15 +787,15 @@ for c, cond in enumerate(["paced","unpaced"]):
             ax[c].bar(0.025 + s + bar_width*e,
                       data_to_plot["error"]["mean"],
                       yerr=data_to_plot["error"]["std_error"],
-                      color = "slategray",
-                      edgecolor = "black",
+                      color = "blue" if c == 0 else "green",
+                      edgecolor = "blue" if c == 0 else "green",
                       align = "edge",
                       width = bar_width,
-                      label = "" if s != 0 else "w/o M.E." if e == 0 else "w/ M.E.",
+                      label = "" if s != 0 else "No" if e == 0 else "Yes",
                       alpha = .4 if e == 0 else .8)
 for a in ax:
     a.set_xticks(np.arange(3)+.5)
-    a.set_xticklabels(["20% Slower","Preferred","20% Faster"])
+    a.set_xticklabels(["20%\nSlower","Preferred","20%\nFaster"])
     a.tick_params(labelsize = 14)
     a.spines['right'].set_visible(False)
     a.spines['top'].set_visible(False)
@@ -781,19 +804,25 @@ ax[0].set_ylabel("Absolute Timing Error",
                  multialignment = "center",
                  labelpad = 15,
                  fontweight = "bold")
-ax[0].yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
+ax[0].yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{:.0f}%".format(x)))
 ax[0].set_title("Synchronization",
                 fontsize = 14,
-                fontweight = "bold")
+                fontweight = "bold",
+                fontstyle="italic")
 ax[1].set_title("Continuation",
                 fontsize = 14,
-                fontweight = "bold")
-ax[0].legend(loc = "upper left",
-             fontsize = 16,
-             frameon = False)
+                fontweight = "bold",
+                fontstyle="italic")
+leg = ax[0].legend(loc = "upper left",
+             fontsize = 12,
+             frameon = True,
+             title="Musical\nExperience",
+             borderpad=0.25,
+             edgecolor = "gray",
+             handlelength=2)
+plt.setp(leg.get_title(),fontsize=16,multialignment="center")
 fig.tight_layout()
-fig.subplots_adjust(wspace = .1,
-                    bottom = .13)
+fig.subplots_adjust(wspace = .1, bottom = .2)
 fig.text(0.55,
          0.02,
          'Metronome Condition',
@@ -833,18 +862,21 @@ ax.set_xlabel("Age (yrs.)",
               fontweight = "bold")
 ax.tick_params(labelsize = 14)
 ax.set_xticks(age_bin_points)
-ax.set_xticklabels(age_bin_strings)
+ax.set_xticklabels(age_bin_strings, rotation=45, ha="right")
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 ax.set_ylabel("Absolute Timing Error",
               fontsize = 16,
               labelpad = 10,
               fontweight = "bold")
-ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
+ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{:.0f}%".format(x)))
 ax.legend(loc = "upper right",
-          frameon = False,
+          frameon = True,
           facecolor = "white",
-          fontsize = 16)
+          fontsize = 12,
+          edgecolor = "gray",
+          handlelength = 2,
+          borderpad = 0.25)
 fig.tight_layout()
 fig.savefig(stats_plots + "error_age" + FIGURE_FMT, dpi=300)
 fig.savefig(stats_plots + "error_age" + ".png", dpi=300)
@@ -862,13 +894,13 @@ for c, gend in enumerate([0,1]):
     ax.errorbar(age_bin_points,
                 ci_data_to_plot[1].values,
                 yerr = se_data_to_plot["error"].values,
-                color = "blue" if c == 0 else "red",
+                color = "teal" if c == 0 else "orangered",
                 linewidth = 2,
-                alpha = .5)
+                alpha = .8)
     ax.fill_between([age_bin_points[0]-1] + age_bin_points[1:-1] + [age_bin_points[-1]+1],
                     ci_data_to_plot[0].values,
                     ci_data_to_plot[2].values,
-                    color = "blue" if c == 0 else "red",
+                    color = "teal" if c == 0 else "orangered",
                     alpha = .2,
                     label = "Male" if c == 0 else "Female")
 ax.set_ylim(bottom = 0,
@@ -879,18 +911,21 @@ ax.set_xlabel("Age (yrs.)",
               fontweight = "bold")
 ax.tick_params(labelsize = 14)
 ax.set_xticks(age_bin_points)
-ax.set_xticklabels(age_bin_strings)
+ax.set_xticklabels(age_bin_strings, rotation=45, ha="right")
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 ax.set_ylabel("Absolute Timing Error",
               fontsize = 16,
               labelpad = 10,
               fontweight = "bold")
-ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
+ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{:.0f}%".format(x)))
 ax.legend(loc = "upper right",
-          frameon = False,
+          frameon = True,
           facecolor = "white",
-          fontsize = 16)
+          fontsize = 16,
+          edgecolor = "gray",
+          handlelength = 2,
+          borderpad = 0.25)
 fig.tight_layout()
 fig.savefig(stats_plots + "error_age_gender" + FIGURE_FMT, dpi=300)
 fig.savefig(stats_plots + "error_age_gender" + ".png", dpi=300)
@@ -973,11 +1008,11 @@ for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
     ax.bar(t,
            data_to_plot["drift"]["mean"],
            yerr = data_to_plot["drift"]["std_error"],
-           color = "gray",
+           color = "navy",
            alpha = .5,
-           edgecolor = "black")
+           edgecolor = "navy")
 ax.axhline(0,
-           color = "black",
+           color = "navy",
            linewidth = 1)
 ax.set_xticks(np.arange(3))
 ax.set_xticklabels(["20% Slower","Preferred","20% Faster"])
@@ -991,7 +1026,7 @@ ax.spines['top'].set_visible(False)
 ax.set_ylabel("Drift (ITI Percent Change)",
               fontsize = 16,
               fontweight = "bold")
-ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
+ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{:.0f}%".format(x)))
 ax.set_ylim(-1.2,3.2)
 fig.tight_layout()
 fig.savefig(stats_plots + "drift_trialspeed_bar" + FIGURE_FMT, dpi=300)
@@ -1008,15 +1043,16 @@ for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
         ax.bar(0.025 + t + m*bar_width,
                data_to_plot["drift"]["mean"],
                yerr = data_to_plot["drift"]["std_error"],
-               color = "slategray",
+               color = "navy",
                alpha = .4 if m == 0 else .8,
-               edgecolor = "black",
-               label = {0:"w/o M.E.",1:"w/ M.E."}[m] if t == 0 else "",
+               edgecolor = "navy",
+               label = {0:"No",1:"Yes"}[m] if t == 0 else "",
                width = bar_width,
                align = "edge")
 ax.axhline(0,
            color = "black",
-           linewidth = 1)
+           linewidth = 1,
+           linestyle=":")
 ax.set_xticks(np.arange(3)+.5)
 ax.set_xticklabels(["20% Slower","Preferred","20% Faster"])
 ax.set_xlabel("Metronome Condition",
@@ -1027,14 +1063,19 @@ ax.tick_params(labelsize = 14)
 ax.set_ylabel("Drift (ITI Percent Change)",
               fontsize = 16,
               fontweight = "bold")
-ax.legend(loc = "upper left",
-          fontsize = 16,
-          frameon = False,
-          facecolor = "white")
+leg = ax.legend(loc = "upper left",
+          fontsize = 12,
+          frameon = True,
+          facecolor = "white",
+          title = "Musical\nExperience",
+          borderpad=0.25,
+          handlelength=2,
+          edgecolor = "gray")
+plt.setp(leg.get_title(),fontsize=12, multialignment="center")
 ax.set_ylim(-2.2,3.2)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
-ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
+ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{:.0f}%".format(x)))
 fig.tight_layout()
 fig.savefig(stats_plots + "drift_trialspeed_musicalexperience_bar" + FIGURE_FMT, dpi=300)
 fig.savefig(stats_plots + "drift_trialspeed_musicalexperience_bar" + ".png", dpi=300)
@@ -1050,15 +1091,16 @@ for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
         ax.bar(0.025 + t + m*bar_width,
                data_to_plot["drift"]["mean"],
                yerr = data_to_plot["drift"]["std_error"],
-               color = "blue" if m == 0 else "red",
+               color = "teal" if m == 0 else "orangered",
                alpha = .5,
-               edgecolor = "navy" if m == 0 else "darkred",
+               edgecolor = "darkslategray" if m == 0 else "crimson",
                label = {0:"Male",1:"Female"}[m] if t == 0 else "",
                width = bar_width,
                align = "edge")
 ax.axhline(0,
            color = "black",
-           linewidth = 1)
+           linewidth = 1,
+           linestyle=":")
 ax.set_xticks(np.arange(3)+.5)
 ax.set_xticklabels(["20% Slower","Preferred","20% Faster"])
 ax.set_xlabel("Metronome Condition",
@@ -1070,13 +1112,16 @@ ax.set_ylabel("Drift (ITI Percent Change)",
               fontsize = 16,
               fontweight = "bold")
 ax.legend(loc = "upper left",
-          fontsize = 16,
-          frameon = False,
-          facecolor = "white")
+          fontsize = 12,
+          frameon = True,
+          facecolor = "white",
+          borderpad=0.25,
+          handlelength=2,
+          edgecolor = "gray")
 ax.set_ylim(-1.9,3.7)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
-ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
+ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{:.0f}%".format(x)))
 fig.tight_layout()
 fig.savefig(stats_plots + "drift_trialspeed_gender_bar" + FIGURE_FMT, dpi=300)
 fig.savefig(stats_plots + "drift_trialspeed_gender_bar" + ".png", dpi=300)
@@ -1089,9 +1134,9 @@ for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
     ax[0].bar(t,
               data_to_plot["drift"]["mean"],
               yerr = data_to_plot["drift"]["std_error"],
-              color = "gray",
+              color = "navy",
               alpha = .5,
-              edgecolor = "black")
+              edgecolor = "navy")
 ax[0].set_xticks(np.arange(3))
 for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
     for m in [0, 1]:
@@ -1099,9 +1144,9 @@ for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
         ax[1].bar(0.025 + t + m*bar_width,
                   data_to_plot["drift"]["mean"],
                   yerr = data_to_plot["drift"]["std_error"],
-                  color = "blue" if m == 0 else "red",
+                  color = "teal" if m == 0 else "orangered",
                   alpha = .5,
-                  edgecolor = "navy" if m == 0 else "darkred",
+                  edgecolor = "darkslategray" if m == 0 else "crimson",
                   label = {0:"Male",1:"Female"}[m] if t == 0 else "",
                   width = bar_width,
                   align = "edge")
@@ -1112,26 +1157,34 @@ for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
         ax[2].bar(0.025 + t + m*bar_width,
                   data_to_plot["drift"]["mean"],
                   yerr = data_to_plot["drift"]["std_error"],
-                  color = "slategray",
+                  color = "navy",
                   alpha = .4 if m == 0 else .8,
-                  edgecolor = "black",
-                  label = {0:"w/o M.E.",1:"w/ M.E."}[m] if t == 0 else "",
+                  edgecolor = "navy",
+                  label = {0:"No",1:"Yes"}[m] if t == 0 else "",
                   width = bar_width,
                   align = "edge")
 ax[2].set_xticks(np.arange(3)+.5)
 ax[1].legend(loc = "upper left",
-             fontsize = 14,
-             frameon = False,
-             facecolor = "white")
-ax[2].legend(loc = "upper left",
-             fontsize = 14,
-             frameon = False,
-             facecolor = "white")
+             fontsize = 12,
+             frameon = True,
+             facecolor = "white",
+             borderpad=0.25,
+             handletextpad=0.25,
+             handlelength=1)
+leg = ax[2].legend(loc = "upper left",
+             fontsize = 12,
+             frameon = True,
+             facecolor = "white",
+             handletextpad=0.25,
+             borderpad=0.25,
+             handlelength=1)
+plt.setp(leg.get_title(),fontsize=12,multialignment="center")
 for i in range(3):
     ax[i].axhline(0,
                   color = "black",
-                  linewidth = 1)
-    ax[i].set_xticklabels(["20%\nSlower","Preferred","20%\nFaster"])
+                  linewidth = 1,
+                  linestyle = ":")
+    ax[i].set_xticklabels(["20% Slower","Preferred","20% Faster"], rotation=45, ha="right")
     ax[i].tick_params(labelsize = 14)
     if i == 1:
         ax[i].set_xlabel("Metronome Condition",
@@ -1140,10 +1193,13 @@ for i in range(3):
                          fontweight = "bold")
     ax[i].spines['right'].set_visible(False)
     ax[i].spines['top'].set_visible(False)
-    ax[i].yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
-ax[0].set_ylabel("Drift (ITI Percent Change)",
+    ax[i].yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{:.0f}%".format(x)))
+ax[0].set_ylabel("Drift\n(ITI Percent Change)",
                  fontsize = 16,
                  fontweight = "bold")
+ax[0].set_title("General", fontweight="bold", fontstyle="italic", loc="center", fontsize=14)
+ax[1].set_title("Sex", fontweight="bold", fontstyle="italic", loc="center", fontsize=14)
+ax[2].set_title("Musical\nExperience", fontweight="bold", fontstyle="italic", loc="center", fontsize=14)
 fig.tight_layout()
 fig.subplots_adjust(wspace = 0.1)
 fig.savefig(stats_plots + "combined_drift_standard_and_gender_and_musicalexperience" + FIGURE_FMT, dpi=300)
@@ -1157,9 +1213,9 @@ for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
     ax[0].bar(t,
               data_to_plot["drift"]["mean"],
               yerr = data_to_plot["drift"]["std_error"],
-              color = "gray",
+              color = "navy",
               alpha = .5,
-              edgecolor = "black")
+              edgecolor = "navy")
 ax[0].set_xticks(np.arange(3))
 for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
     for m in [0, 1]:
@@ -1167,31 +1223,39 @@ for t, trial_speed in enumerate(["SlowedDown","NoChange","SpedUp"]):
         ax[1].bar(0.025 + t + m*bar_width,
                   data_to_plot["drift"]["mean"],
                   yerr = data_to_plot["drift"]["std_error"],
-                  color = "slategray",
+                  color = "navy",
                   alpha = .4 if m == 0 else .8,
-                  edgecolor = "black",
-                  label = {0:"w/o M.E.",1:"w/ M.E."}[m] if t == 0 else "",
+                  edgecolor = "navy",
+                  label = {0:"No",1:"Yes"}[m] if t == 0 else "",
                   width = bar_width,
                   align = "edge")
 ax[1].set_xticks(np.arange(3)+.5)
-ax[1].legend(loc = "upper left",
-             fontsize = 14,
-             frameon = False,
-             facecolor = "white")
+leg = ax[1].legend(loc = "upper left",
+             fontsize = 12,
+             frameon = True,
+             facecolor = "white",
+             borderpad = 0.25,
+             handlelength = 2,
+             edgecolor = "gray")
+plt.setp(leg.get_title(), fontsize=12, multialignment="center")
 for i in range(2):
     ax[i].axhline(0,
                   color = "black",
-                  linewidth = 1)
+                  linewidth = 1,
+                  linestyle = ":")
     ax[i].set_xticklabels(["20%\nSlower","Preferred","20%\nFaster"])
     ax[i].tick_params(labelsize = 14)
     ax[i].spines['right'].set_visible(False)
     ax[i].spines['top'].set_visible(False)
-    ax[i].yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{}%".format(x)))
-ax[0].set_ylabel("Drift (ITI Percent Change)",
+    ax[i].yaxis.set_major_formatter(FuncFormatter(lambda x, pos: "{:.0f}%".format(x)))
+ax[0].set_ylabel("Drift\n(ITI Percent Change)",
                  fontsize = 16,
                  fontweight = "bold")
+ax[0].set_title("General", fontweight="bold", fontstyle="italic", loc="center", fontsize=14)
+ax[1].set_title("Musical Experience", fontweight="bold", fontstyle="italic", loc="center", fontsize=14)
+fig.text(0.55, 0.03, "Metronome Condition", fontweight="bold", fontsize=16, ha="center", va="center")
 fig.tight_layout()
-fig.subplots_adjust(wspace = 0.1)
+fig.subplots_adjust(wspace = 0.1, bottom=.2)
 fig.savefig(stats_plots + "combined_drift_standard_and_musicalexperience" + FIGURE_FMT, dpi=300)
 fig.savefig(stats_plots + "combined_drift_standard_and_musicalexperience" + ".png", dpi=300)
 plt.close()
@@ -1262,18 +1326,19 @@ Within-Subject Drift Effects (With 10% Threshold Filtering):
 
 ## Plot Within-Subject Drift
 rel_drift_by_cond = drift_pivot_melted.groupby(["variable"]).agg({"value":[np.mean, std_error]}).reset_index()
-fig, ax = plt.subplots(figsize = (standard_fig[0]/3*2, standard_fig[1]))
+fig, ax = plt.subplots(figsize = standard_fig)
 for j, var in enumerate(["slowed_change","sped_change"]):
     data_to_plot = rel_drift_by_cond.loc[rel_drift_by_cond.variable == var]
     ax.bar(j,
            data_to_plot["value"]["mean"],
            yerr = data_to_plot["value"]["std_error"],
-           color = "gray",
-           edgecolor = "black",
+           color = "navy",
+           edgecolor = "navy",
            alpha = .5,
            width = .8)
 ax.axhline(0,
-           color = "black")
+           color = "black",
+           linestyle = ":")
 ax.set_xticks([0,1])
 ax.set_xticklabels(["20% Slower","20% Faster"])
 ax.spines['right'].set_visible(False)
@@ -1359,18 +1424,21 @@ ax.set_xlabel("Age (yrs.)",
               labelpad = 10,
               fontweight = "bold")
 ax.set_xticks(age_bin_points)
-ax.set_xticklabels(age_bin_strings)
+ax.set_xticklabels(age_bin_strings, rotation=45, ha="right")
 ax.tick_params(labelsize = 14)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
-ax.set_ylabel("Quartile Variation Coefficient",
+ax.set_ylabel("Quartile Variation\nCoefficient",
               fontsize = 16,
               labelpad = 10,
               fontweight = "bold")
 ax.legend(loc = "upper right",
-          frameon = False,
+          frameon = True,
           facecolor = "white",
-          fontsize = 14)
+          fontsize = 14,
+          handlelength = 2,
+          borderpad = 0.25,
+          edgecolor = "gray")
 fig.tight_layout()
 fig.savefig(stats_plots + "variability_age" + FIGURE_FMT, dpi=300)
 fig.savefig(stats_plots + "variability_age" + ".png", dpi=300)
@@ -1388,13 +1456,13 @@ for c, gend in enumerate([0,1]):
     ax.errorbar(age_bin_points,
                 ci_data_to_plot[1].values,
                 yerr = avg_data_to_plot["qvc"].values,
-                color = "blue" if c == 0 else "red",
+                color = "teal" if c == 0 else "orangered",
                 linewidth = 2,
                 alpha = .5)
     ax.fill_between([age_bin_points[0]-1] + age_bin_points[1:-1] + [age_bin_points[-1]+1],
                     ci_data_to_plot[0].values,
                     ci_data_to_plot[2].values,
-                    color = "blue" if c == 0 else "red",
+                    color = "teal" if c == 0 else "orangered",
                     alpha = .2,
                     label = "Male" if c == 0 else "Female")
 ax.set_xlabel("Age (yrs.)",
@@ -1402,18 +1470,21 @@ ax.set_xlabel("Age (yrs.)",
               labelpad = 10,
               fontweight = "bold")
 ax.set_xticks(age_bin_points)
-ax.set_xticklabels(age_bin_strings)
+ax.set_xticklabels(age_bin_strings, rotation=45, ha="right")
 ax.tick_params(labelsize = 14)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
-ax.set_ylabel("Quartile Variation Coefficient",
+ax.set_ylabel("Quartile Variation\nCoefficient",
               fontsize = 16,
               labelpad = 10,
               fontweight = "bold")
 ax.legend(loc = "upper right",
-          frameon = False,
+          frameon = True,
           facecolor = "white",
-          fontsize = 14)
+          fontsize = 14,
+          borderpad = 0.25,
+          edgecolor = "gray",
+          handlelength = 2)
 fig.tight_layout()
 fig.savefig(stats_plots + "variability_age_gender" + FIGURE_FMT, dpi=300)
 fig.savefig(stats_plots + "variability_age_gender" + ".png", dpi=300)
@@ -1445,15 +1516,17 @@ ax.set_xlabel("Metronome Condition",
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 ax.tick_params(labelsize = 14)
-ax.set_ylabel("Quartile Variation Coefficient",
+ax.set_ylabel("Quartile Variation\nCoefficient",
               fontsize = 16,
               labelpad = 15,
               fontweight = "bold")
-ax.legend(loc = "upper left",
-          frameon = False,
+ax.legend(loc = "lower right",
+          frameon = True,
           facecolor = "white",
-          fontsize = 16)
-ax.set_ylim(top = 0.07)
+          fontsize = 16,
+          borderpad = 0.25,
+          handlelength = 2,
+          edgecolor = "gray")
 fig.tight_layout()
 fig.savefig(stats_plots + "variability_trialspeed" + FIGURE_FMT, dpi=300)
 fig.savefig(stats_plots + "variability_trialspeed" + ".png", dpi=300)
@@ -1469,32 +1542,38 @@ for c, cond in enumerate(["paced","unpaced"]):
         ax[c].bar(0.025 + np.arange(3) + .95/2*me,
                   data_to_plot["qvc"]["mean"].values,
                   yerr = data_to_plot["qvc"]["std_error"].values,
-                  color = "slategray",
-                  edgecolor = "black",
+                  color = "blue" if c == 0 else "green",
+                  edgecolor = "blue" if c == 0 else "green",
                   width = .95/2,
                   alpha = .4 if me == 0 else .8,
                   align = "edge",
-                  label = "w/ M.E." if me == 1 else "w/o M.E.")
+                  label = "Yes" if me == 1 else "No")
         ax[c].spines['right'].set_visible(False)
         ax[c].spines['top'].set_visible(False)
         ax[c].set_xticks(np.arange(3) + .5)
         ax[c].tick_params(labelsize = 14)
-        ax[c].set_xticklabels(["20% Slower","Preferred","20% Faster"])
+        ax[c].set_xticklabels(["20% Slower","Preferred","20% Faster"], rotation=45, ha="right")
 ax[0].set_title("Synchronization",
                 fontsize = 16,
-                fontweight = "bold")
+                fontweight = "bold",
+                fontstyle = "italic")
 ax[1].set_title("Continuation",
                 fontsize = 16,
-                fontweight = "bold")
+                fontweight = "bold",
+                 fontstyle = "italic")
 ax[0].set_ylabel("Quartile Variation\nCoefficient",
                  fontsize = 16,
                  labelpad = 15,
                  fontweight = "bold")
-ax[1].legend(loc = "lower right",
-             fontsize = 16,
-             frameon = False,
+leg = ax[1].legend(loc = "lower right",
+             fontsize = 12,
+             frameon = True,
              facecolor = "white",
-             framealpha = 1)
+             framealpha = 1,
+             title = "Musical\nExperience",
+             borderpad = 0.25,
+             edgecolor = "gray")
+plt.setp(leg.get_title(),fontsize=12, multialignment="center")
 fig.text(0.55,
          0.02,
          'Metronome Condition',
@@ -1503,7 +1582,8 @@ fig.text(0.55,
          fontweight = "bold")
 fig.tight_layout()
 fig.subplots_adjust(top = .9,
-                    bottom = .13)
+                    bottom = .35,
+                    wspace = .12)
 fig.savefig(stats_plots + "variability_musicalexperience_trialspeed" + FIGURE_FMT, dpi=300)
 fig.savefig(stats_plots + "variability_musicalexperience_trialspeed" + ".png", dpi=300)
 plt.close()

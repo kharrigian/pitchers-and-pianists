@@ -275,12 +275,12 @@ fig, ax = plt.subplots(figsize=standard_fig)
 ax.fill_between(np.arange(1,101),
                 timing_window_CI[0],
                 timing_window_CI[2],
-                color = "slategray",
-                alpha = 0.5,
+                color = "navy",
+                alpha = 0.3,
                 label="95% C.I.")
 ax.plot(np.arange(1, 101),
         timing_window_CI[1],
-        color = "slategray",
+        color = "navy",
         alpha = 0.8,
         linewidth = 2,
         label="Mean")
@@ -288,9 +288,9 @@ for i in [25, 50, 75]:
     ax.axvline(i+.5, color="black", linestyle="--", alpha=0.25, zorder=-1)
 ax.set_xlabel("Throw Number", fontweight="bold", fontsize = 16)
 ax.set_ylabel("Timing Window (ms)", fontweight="bold", fontsize=16)
-ax.legend(loc="lower right", frameon=False, fontsize=14)
+ax.legend(loc="lower right", frameon=True, fontsize=14, edgecolor="gray", borderpad=0.25, handlelength=2)
 ax.tick_params(labelsize=14)
-ax.set_title("Learning Curve: Timing Window", fontweight="bold", fontsize=18, loc="left")
+ax.set_title("Learning Curve: Timing Window", fontweight="bold", fontsize=18, loc="left", fontstyle="italic")
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 fig.tight_layout()
@@ -307,8 +307,8 @@ for b, binds in enumerate(blocks):
     block_vals = processed_skittles_data["timingWindow"].loc[overlap_subject_list][binds]
     block_means = block_vals.mean(axis=1)
     bci = bootstrap_sample(block_means.values, func=np.nanmean).T[0]
-    ax[b].hist(block_means, bins=bins, color="slategray", alpha=0.7, edgecolor="black",
-               label="$\\sigma={:.1f}$\n95% C.I.=[{:.1f},{:.1f}]".format( bci[1], bci[0], bci[2]))
+    ax[b].hist(block_means, bins=bins, color="navy", alpha=0.7, edgecolor="black",
+               label="$\\mu={:.1f}$\n95% C.I.=[{:.1f},{:.1f}]".format( bci[1], bci[0], bci[2]))
     ax[b].set_title("Block {}".format(b+1), fontsize=16, loc="left")
     ax[b].spines["top"].set_visible(False)
     ax[b].spines["right"].set_visible(False)
@@ -316,7 +316,7 @@ for b, binds in enumerate(blocks):
     ax[b].legend(loc="center right", frameon=False, fontsize=12)
 ax[-1].set_xlabel("Mean Timing Window (ms)", fontweight="bold", fontsize=16)
 fig.text(0.04, 0.5, "# Subjects", fontweight="bold", fontsize=16, rotation=90, va="center", ha="center")
-fig.suptitle("Timing Window Distribution Over Time", fontsize=18, fontweight="bold", y=0.97)
+fig.suptitle("Timing Window Distribution Over Time", fontsize=18, fontweight="bold", y=0.97, fontstyle="italic")
 fig.tight_layout()
 fig.subplots_adjust(left=0.12, top=.84)
 fig.savefig("./plots/intertask/histogram_timing_window.png", dpi=300)
@@ -331,12 +331,12 @@ fig, ax = plt.subplots(figsize=standard_fig)
 ax.fill_between(np.arange(13,89),
                 qvc_iti_CI[0],
                 qvc_iti_CI[2],
-                color = "slategray",
-                alpha = 0.5,
+                color = "navy",
+                alpha = 0.3,
                 label="95% C.I.")
 ax.plot(np.arange(13,89),
         qvc_iti_CI[1],
-        color = "slategray",
+        color = "navy",
         alpha = 0.8,
         linewidth = 2,
         label="Mean")
@@ -345,8 +345,8 @@ for i in [25, 50, 75]:
 ax.set_xlabel("Throw Number", fontweight="bold", fontsize = 16)
 ax.set_ylabel("QVC IRI (ms)", fontweight="bold", fontsize=16)
 ax.tick_params(labelsize=14)
-ax.legend(loc="upper right", frameon=False, fontsize=14)
-ax.set_title("Learning Curve: QVC IRI", fontweight="bold", fontsize=18, loc="left")
+ax.legend(loc="upper right", frameon=True, fontsize=14, edgecolor="gray", borderpad=0.25, handlelength=2)
+ax.set_title("Learning Curve: QVC IRI", fontweight="bold", fontsize=18, loc="left", fontstyle="italic")
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 ax.set_xlim(0, 100)
@@ -368,14 +368,14 @@ for i, (ind, label) in enumerate(zip([0, 75],["Start","Finish"])):
             color="navy" if i == 1 else "orange",
             alpha=.5,
             edgecolor="navy" if i == 1 else "darkorange",
-            label="{} $\\sigma={:.1f}$\n95% C.I.=[{:.1f},{:.1f}]".format(label, bci[1], bci[0], bci[2]))
+            label="{} $\\mu={:.1f}$\n95% C.I.=[{:.1f},{:.1f}]".format(label, bci[1], bci[0], bci[2]))
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 ax.tick_params(labelsize=14)
-ax.legend(loc="upper right", frameon=False, fontsize=12)
+ax.legend(loc="upper right", frameon=True, fontsize=12, edgecolor="gray", borderpad=0.25, handlelength=2)
 ax.set_xlabel("QVC IRI (ms)", fontweight="bold", fontsize=16)
 fig.text(0.04, 0.5, "# Subjects", fontweight="bold", fontsize=16, rotation=90, va="center", ha="center")
-ax.set_title("QVC IRI Distribution Over Time", fontsize=18, fontweight="bold")
+ax.set_title("QVC IRI Distribution Over Time", fontsize=18, fontweight="bold", fontstyle="italic", loc="left")
 ax.set_xlim(left=0)
 fig.tight_layout()
 fig.subplots_adjust(left=0.12, top=.89)
@@ -391,12 +391,12 @@ fig, ax = plt.subplots(figsize=standard_fig)
 ax.fill_between(np.arange(1,101),
                 timing_error_CI[0],
                 timing_error_CI[2],
-                color = "slategray",
-                alpha = 0.5,
+                color = "navy",
+                alpha = 0.3,
                 label="95% C.I.")
 ax.plot(np.arange(1, 101),
         timing_error_CI[1],
-        color = "slategray",
+        color = "navy",
         alpha = 0.8,
         linewidth = 2,
         label="Mean")
@@ -404,9 +404,9 @@ for i in [25, 50, 75]:
     ax.axvline(i+.5, color="black", linestyle="--", alpha=0.25, zorder=-1)
 ax.set_xlabel("Throw Number", fontweight="bold", fontsize = 16)
 ax.set_ylabel("Timing Error (ms)", fontweight="bold", fontsize=16)
-ax.legend(loc="upper right", frameon=False, fontsize=14)
+ax.legend(loc="upper right", frameon=True, fontsize=14, edgecolor="gray", handlelength=2, borderpad=0.25)
 ax.tick_params(labelsize=14)
-ax.set_title("Learning Curve: Timing Error", fontweight="bold", fontsize=18, loc="left")
+ax.set_title("Learning Curve: Timing Error", fontweight="bold", fontsize=18, loc="left", fontstyle="italic")
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 fig.tight_layout()
@@ -423,8 +423,8 @@ for b, binds in enumerate(blocks):
     block_vals = processed_skittles_data["timingError"].loc[overlap_subject_list][binds]
     block_means = block_vals.mean(axis=1)
     bci = bootstrap_sample(block_means.values, func=np.nanmean).T[0]
-    ax[b].hist(block_means, bins=bins, color="slategray", alpha=0.7, edgecolor="black",
-               label="$\\sigma={:.1f}$\n95% C.I.=[{:.1f},{:.1f}]".format( bci[1], bci[0], bci[2]))
+    ax[b].hist(block_means, bins=bins, color="navy", alpha=0.7, edgecolor="navy",
+               label="$\\mu={:.1f}$\n95% C.I.=[{:.1f},{:.1f}]".format( bci[1], bci[0], bci[2]))
     ax[b].set_title("Block {}".format(b+1), fontsize=16, loc="left")
     ax[b].spines["top"].set_visible(False)
     ax[b].spines["right"].set_visible(False)
@@ -432,11 +432,63 @@ for b, binds in enumerate(blocks):
     ax[b].legend(loc="center right", frameon=False, fontsize=12)
 ax[-1].set_xlabel("Mean Timing Error (ms)", fontweight="bold", fontsize=16)
 fig.text(0.04, 0.5, "# Subjects", fontweight="bold", fontsize=16, rotation=90, va="center", ha="center")
-fig.suptitle("Timing Error Distribution Over Time", fontsize=18, fontweight="bold", y=0.97)
+fig.suptitle("Timing Error Distribution Over Time", fontsize=18, fontweight="bold", y=0.97, fontstyle="italic")
 fig.tight_layout()
 fig.subplots_adjust(left=0.12, top=.84)
 fig.savefig("./plots/intertask/histogram_timing_error.png", dpi=300)
 fig.savefig(f"./plots/intertask/histogram_curve_timing_error{FIGURE_FMT}", dpi=300)
+plt.close(fig)
+
+## Combined Learning Curves
+fig, axes = plt.subplots(2, 2, figsize=standard_fig, sharex=False, sharey=False)
+axes = axes.ravel()
+for v, (val, name, met) in enumerate(zip(["timingError","timingWindow", "qvcITImovingWindow","Error"],
+                                    ["Timing Error", "Timing Window", "QVC IRI", "Distance Error"],
+                                    ["Time\n(ms)", "Time\n(ms)", "Time\n(ms)", "Angle\n(radians)"])):
+    CI = bootstrap_sample(processed_skittles_data[val].loc[overlap_subject_list].values,
+                    axis=0,
+                    func=np.nanmean)
+    if val == "qvcITImovingWindow":
+        CI *= 1000
+    ax = axes[v]
+    if val == "qvcITImovingWindow":
+        ind = np.arange(13, 89)
+    else:
+        ind = np.arange(1,101)
+    ax.fill_between(ind,
+                    CI[0],
+                    CI[2],
+                    color = "navy",
+                    alpha = 0.3,
+                    label="95% C.I.")
+    ax.plot(ind,
+            CI[1],
+            color = "navy",
+            alpha = 0.8,
+            linewidth = 2,
+            label="Mean")
+    for i in [25, 50, 75]:
+        ax.axvline(i+.5, color="black", linestyle="--", alpha=0.25, zorder=-1)
+    if val == "qvcITImovingWindow":
+        ax.set_yticks([70, 90])
+    ax.set_ylabel(met, fontweight="bold", fontsize=16, labelpad=8)
+    ax.set_title(name, fontweight="bold", style="italic", loc="center", fontsize=16)
+    ax.tick_params(labelsize=14)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_xlim(0, 100)
+for i in range(2):
+    axes[i].set_xticks([])
+fig.text(0.01, .94, "(A)", ha="left", va="center", fontweight="bold", fontsize=16, fontstyle="italic")
+fig.text(0.5, .94, "(B)", ha="left", va="center", fontweight="bold", fontsize=16, fontstyle="italic")
+fig.text(0.01, .525, "(C)", ha="left", va="center", fontweight="bold", fontsize=16, fontstyle="italic")
+fig.text(0.5, .525, "(D)", ha="left", va="center", fontweight="bold", fontsize=16, fontstyle="italic")
+axes[2].set_xlabel("Throw #", fontweight="bold", fontsize=16)
+axes[3].set_xlabel("Throw #", fontweight="bold", fontsize=16)
+fig.tight_layout()
+fig.subplots_adjust(hspace=.28, wspace=.6)
+fig.savefig("./plots/intertask/learning_curves_combined.png", dpi=300)
+fig.savefig(f"./plots/intertask/learning_curves_combined{FIGURE_FMT}", dpi=300)
 plt.close(fig)
 
 ##############################
@@ -589,7 +641,7 @@ def plot_comparison(tapping_met = "qvc",
     """
     skittles_mets = ["mean_timingError","mean_timingWindow","qvc_ITI"]
     fig, ax = plt.subplots(3, 3, figsize = standard_fig, sharex = plot_rank, sharey = True)
-    for t, (trial_speed, tlbl) in enumerate(zip(["SpedUp","NoChange","SlowedDown"],["20% Faster","Preferred","20% Slower"])):
+    for t, (trial_speed, tlbl) in enumerate(zip(["SpedUp","NoChange","SlowedDown"],["20%\nFaster","Preferred","20%\nSlower"])):
         for m, (skit_met, sklbl) in enumerate(zip(skittles_mets,["Timing Error", "Timing Window", "$QVC_{IRI}$"])):
             plot_ax = ax[t,m]
             tmet = "{}_{}_{}".format(tapping_met, trial_speed, segment)
@@ -602,8 +654,10 @@ def plot_comparison(tapping_met = "qvc",
             plot_ax.scatter(x,
                             y,
                             s = 25,
+                            edgecolor = "navy",
+                            linewidth = .5,
                             alpha = .3,
-                            color = "slategray")
+                            color = "navy")
             plot_ax.spines['right'].set_visible(False)
             plot_ax.spines['top'].set_visible(False)
             if plot_rank:
@@ -617,13 +671,13 @@ def plot_comparison(tapping_met = "qvc",
         ax[t][0].set_ylabel(tlbl, fontsize = 12, labelpad = 5)
     fig.text(0.55,
             0.02,
-            "Throwing Performance" + {True:" (Rank)",False:""}[plot_rank],
+            "Throwing Skill" + {True:" (Rank)",False:""}[plot_rank],
             fontweight = "bold",
             horizontalalignment="center",
             fontsize = 16)
-    fig.text(0.02,
+    fig.text(0.035,
              0.55,
-             "Tapping Performance{}".format({True:" (Rank)",False:""}[plot_rank]),
+             "Tapping Skill{}".format({True:" (Rank)",False:""}[plot_rank]),
              fontweight = "bold",
              horizontalalignment = "center",
              verticalalignment = "center",
@@ -631,17 +685,18 @@ def plot_comparison(tapping_met = "qvc",
              fontsize = 16)
     fig.suptitle("Tapping Metric: {}".format(tap_met_name),
                 fontsize = 16,
-                x = 0.15,
+                x = 0.2,
                 y = .95,
                 fontweight = "bold",
                 horizontalalignment = "left",
-                verticalalignment = "center")
+                verticalalignment = "center",
+                fontstyle = "italic")
     fig.tight_layout()
-    fig.subplots_adjust(bottom = 0.2, left = 0.15, hspace = 0.10, top = .92)
+    fig.subplots_adjust(bottom = 0.2, left = 0.2, hspace = 0.10, top = .92)
     return fig, ax
 
 ## Run Plotting
-tap_metrics = [("drift","Drift"),("qvc","$QVC_{ITI}$"),("error","Timing Error")]
+tap_metrics = [("drift","Drift"),("qvc","QVC ITI"),("error","Timing Error")]
 for tap_met, met_name in tap_metrics:
     fig, ax = plot_comparison(tap_met, met_name, plot_rank = True)
     fig.savefig("./plots/intertask/{}_correlations".format(tap_met) + FIGURE_FMT)
@@ -660,7 +715,7 @@ fig, ax = plt.subplots(figsize = standard_fig)
 data_merged_ols.plot.scatter("preferred_period",
                              "mean_iti_seconds",
                              ax = ax,
-                             color = "slategray",
+                             color = "navy",
                              s = 40,
                              alpha = .3,
                              edgecolor = "black")
@@ -668,7 +723,7 @@ ax.set_xlabel("Preferred Period (ms)",
               fontsize = 16,
               fontweight = "bold",
               labelpad = 10)
-ax.set_ylabel("Mean Inter-Release-Interval (s)",
+ax.set_ylabel("Inter-Release-Interval (s)",
               fontsize = 16,
               fontweight = "bold",
               labelpad = 10)
