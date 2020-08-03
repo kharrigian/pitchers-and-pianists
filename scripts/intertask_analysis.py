@@ -710,6 +710,10 @@ for tap_met, met_name in tap_metrics:
 ## Format
 data_merged_ols["mean_iti_seconds"] = data_merged_ols["mean_ITI"] / 1000
 
+## Preferred Period/Mean ITI
+pp_iri_corr =  spearmanr(data_merged_ols["preferred_period"], data_merged_ols["mean_ITI"])
+lfit = np.polyfit(data_merged_ols["preferred_period"], data_merged_ols["mean_iti_seconds"], 1)
+
 ## Preferred Period vs Inter-Release-Interval
 fig, ax = plt.subplots(figsize = standard_fig)
 data_merged_ols.plot.scatter("preferred_period",
@@ -718,7 +722,16 @@ data_merged_ols.plot.scatter("preferred_period",
                              color = "navy",
                              s = 40,
                              alpha = .3,
-                             edgecolor = "black")
+                             edgecolor = "navy",
+                             )
+x = np.linspace(data_merged_ols["preferred_period"].min()*.9, data_merged_ols["preferred_period"].max()*1.1)
+ax.plot(x,
+        np.polyval(lfit, x),
+        label = "Spearman $R={:.2f}$ ($p={:.2f}$)".format(pp_iri_corr[0], pp_iri_corr[1]),
+        color = "crimson",
+        linestyle = "--",
+        alpha = .9,
+        linewidth = 2)
 ax.set_xlabel("Preferred Period (ms)",
               fontsize = 16,
               fontweight = "bold",
@@ -728,15 +741,14 @@ ax.set_ylabel("Inter-Release-Interval (s)",
               fontweight = "bold",
               labelpad = 10)
 ax.tick_params(labelsize = 14)
+ax.set_title("Correlation Plot: Preferred Rhythm", fontweight="bold", fontstyle="italic", fontsize=18, loc="left")
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
+ax.legend(loc = "upper right", frameon=True, edgecolor = "gray", handlelength=2, borderpad=.25)
 fig.tight_layout()
 fig.savefig("./plots/intertask/preferred_period_IRI_scatter" + FIGURE_FMT)
 fig.savefig("./plots/intertask/preferred_period_IRI_scatter" + ".png")
 plt.close()
-
-## Preferred Period/Mean ITI
-pp_iri_corr =  spearmanr(data_merged_ols["preferred_period"], data_merged_ols["mean_ITI"])
 
 ##############################
 ### OLS ANOVA for Rythmicity
